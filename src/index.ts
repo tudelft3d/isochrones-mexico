@@ -1,5 +1,7 @@
 import maplibre, { GeoJSONSource, MapMouseEvent } from 'maplibre-gl';
 
+const base_url = "http://localhost:9080/example/dev-bundle";
+
 const map = new maplibre.Map( {
     container: 'map',
     style: 'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL', //'https://demotiles.maplibre.org/style.json', // stylesheet location
@@ -12,7 +14,7 @@ const map = new maplibre.Map( {
 map.on('load', () => {
     map.addSource("stations", {
         "type": "geojson",
-        "data": "http://localhost:9080/example/dev-bundle/data/starting_points.geojson"
+        "data": `${base_url}/data/starting_points.geojson`
     });
     map.addLayer({
         "id": "starting_points",
@@ -86,7 +88,7 @@ function onMouseMove(e: MapMouseEvent) {
         const station = features[features.length - 1]; // the largest according to the API scoring
         const hoveredStation = station.properties?.new_id as Number;
 
-        fetch(`http://localhost:9080/example/dev-bundle/data/isochrones/${hoveredStation}.geojson`).then(data => {
+        fetch(`${base_url}/data/isochrones/${hoveredStation}.geojson`).then(data => {
             data.json().then(json => {
                 (map.getSource("isochrones") as GeoJSONSource).setData(json);
             });
