@@ -4,7 +4,7 @@ const base_url = "http://localhost:9080/example/dev-bundle";
 
 const map = new maplibre.Map( {
     container: 'map',
-    style: 'https://api.maptiler.com/maps/basic/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL', //'https://demotiles.maplibre.org/style.json', // stylesheet location
+    style: 'https://api.maptiler.com/maps/47a11a62-e38e-4021-a133-9aecd60c679a/style.json?key=wyRKCoUfzSqmjQWaOFIp',
     center: [ - 99.12, 19.43 ], // starting position [lng, lat]
     zoom: 12 // starting zoom
 } );
@@ -21,11 +21,30 @@ map.on('load', () => {
         "type": "circle",
         "source": "stations",
         "paint": {
-            "circle-radius": 6,
-            "circle-color": "#000000"
+            "circle-radius": 3,
+            "circle-color": "#000000",
+            "circle-stroke-width": 1,
+            "circle-stroke-color": "#ffffff"
         }
     },
-    "label_airport");
+    "place_label_park");
+    map.addLayer({
+        "id": "starting_points_text",
+        "type": "symbol",
+        "source": "stations",
+        "layout": {
+            "text-field": ["get", "name"],
+            "text-anchor": "left",
+            "text-offset": [0.5, 0],
+            "text-size": 12
+        },
+        "paint": {
+            "text-halo-width": 3,
+            "text-halo-color": "#ffffff"
+        },
+        "minzoom": 13
+    },
+    "starting_points");
 
     map.addSource("isochrones", {
         type: "geojson",
