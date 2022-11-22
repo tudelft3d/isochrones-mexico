@@ -31,7 +31,15 @@
     <!-- <link href="./index.css" rel="stylesheet"> -->
   </head>
   <body>
-    <div id="map"></div>
+    <div id="map">
+        <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;">
+          <img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo">
+        </a>
+        <a href="https://3d.bk.tudelft.nl/" style="position:absolute;left:50%;bottom:10px;z-index:999;transform:translate(-50%,0);">
+          <img src="https://3d.bk.tudelft.nl/ken/maps/mexico-city/logo.png" alt="3D geoinformation group logo" style="height:30px;">
+        </a>
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" style="position:absolute;right:10px;bottom:10px;z-index:999;font-size:12px;color:black;">&copy; OpenStreetMap contributors</a>
+    </div>
     <script type="module" src="index.ts"></script>
   </body>
 </html>
