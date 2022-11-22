@@ -2,7 +2,7 @@
 
 This is the code for the [Mexico City public transit isochrones map](https://3d.bk.tudelft.nl/ken/maps/mexico-city/).
 
-The base map is the Toner style from [Maptiler](https://www.maptiler.com/), itself based on the old style from [Stamen Design](http://maps.stamen.com/toner/). The  concept and a few styling code excerpts are based on [Chronotrains](https://www.chronotrains.com/). The public transit data comes from the [Mexico city static GTFS](https://datos.cdmx.gob.mx/dataset/gtfs).
+The map is built with [MapLibre](https://maplibre.org/) using vector tiles and the Toner style from [Maptiler](https://www.maptiler.com/), itself based on the old style from [Stamen Design](http://maps.stamen.com/toner/). Maptiler uses data from [OpenStreetMap](https://www.openstreetmap.org) to generate the vector tiles. The concept and some bits of code are taken from [Chronotrains](https://www.chronotrains.com/). The public transit data comes from November 11, 2022 update of the [Mexico city static GTFS](https://datos.cdmx.gob.mx/dataset/gtfs).
 
 ## How are the isochrones computed?
 
@@ -23,7 +23,7 @@ The isochrones are computed based on a network on top of an [H3](https://h3geo.o
 
 ## Known limitations
 
-- We assume that it is possible to walk at the same speed between any two adjacent H3 hexagons (even when there's no direct road connection or the route is not straight)
-- Issues in the Mexico City GTFS (eg Metro lines 1 and 12 in normal operation)
+- We assume that it is possible to walk at the same speed between any two adjacent H3 hexagons (even when there's no direct road connection, the route is not straight or the terrain isn't flat)
+- Issues in the Mexico City GTFS (eg Metro lines 1 and 12 operating normally, some inconsistent station locations)
 - Limited coverage of the Mexico City GTFS (eg only a few private operators, limited coverage outside of Mexico City proper)
 - GDAL is not always robust when dissolving polygons (see some missing isochrones)
