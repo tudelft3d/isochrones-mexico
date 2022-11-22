@@ -169,8 +169,8 @@ map.on('load', () => {
 function onMouseMove(e: MapMouseEvent) {
     const features = map.queryRenderedFeatures(
         [
-            [e.point.x - 5, e.point.y - 5],
-            [e.point.x + 5, e.point.y + 5],
+            [e.point.x - 10, e.point.y - 10],
+            [e.point.x + 10, e.point.y + 10],
         ],
         {
             layers: ["starting_points"],

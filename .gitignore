@@ -2,6 +2,7 @@
 .vscode
 example
 .DS_Store
+*.xcodeproj
 
 # Logs
 logs

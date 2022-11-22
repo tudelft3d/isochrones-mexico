@@ -52,7 +52,7 @@ struct Connection {
 };
 
 struct Hex {
-  std::string name;
+  std::string stop_name, transport_type;
   std::vector<std::string> stops;
   std::vector<Connection> connections;
 };
@@ -411,9 +411,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Metro " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "TL") continue;
@@ -429,9 +432,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Tren Ligero " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "SUB") continue;
@@ -447,9 +453,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Suburbano " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "MB") continue;
@@ -466,9 +475,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) hexes[hex].name = "Metrobús " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "CBB") continue;
@@ -484,9 +496,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Cablebús " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "TROLE") continue;
@@ -503,9 +518,12 @@ int main(int argc, const char * argv[]) {
       gridDisk(hex, 3, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
-        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Trolebús " + stops[stop.second.stop].name;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
     }
   }
   
@@ -530,7 +548,7 @@ int main(int argc, const char * argv[]) {
   starting_points["type"] = "FeatureCollection";
   starting_points["features"] = nlohmann::json::array();
   for (auto const &hex: hexes) {
-    if (hex.second.name.empty()) continue;
+    if (hex.second.stop_name.empty()) continue;
     LatLng ll;
     cellToLatLng(hex.first, &ll);
     starting_points["features"].push_back(nlohmann::json::object());
@@ -540,9 +558,12 @@ int main(int argc, const char * argv[]) {
     starting_points["features"].back()["geometry"]["coordinates"] = {radsToDegs(ll.lng), radsToDegs(ll.lat)};
     starting_points["features"].back()["properties"] = nlohmann::json::object();
     starting_points["features"].back()["properties"]["id"] = std::to_string(hex.first);
-    starting_points["features"].back()["properties"]["name"] = hex.second.name;
+    starting_points["features"].back()["properties"]["system"] = hex.second.transport_type;
+    starting_points["features"].back()["properties"]["name"] = hex.second.stop_name;
   } output_stream << starting_points.dump() << std::endl;
   output_stream.close();
+  
+  return 0;
   
   // Add walking connections
   std::cout << "Adding walking connections..." << std::endl;
@@ -607,13 +628,14 @@ int main(int argc, const char * argv[]) {
   
   // Compute isochrones
   for (auto const &hex: hexes) {
-    if (hex.second.name.empty()) continue;
-    std::cout << "Computing isochrone for " << hex.second.name << "..." << std::endl;
+    if (hex.second.stop_name.empty()) continue;
+    std::cout << "Computing isochrone for " << hex.second.transport_type << " " << hex.second.stop_name << "..." << std::endl;
     auto time_and_previous = compute_times(hexes, hex.first);
     
     nlohmann::json isochrones = compute_isochrones(time_and_previous.first, isochrone_times);
     isochrones["properties"]["id"] = std::to_string(hex.first);
-    isochrones["properties"]["name"] = hex.second.name;
+    isochrones["properties"]["system"] = hex.second.transport_type;
+    isochrones["properties"]["name"] = hex.second.stop_name;
     output_stream.open(isochrones_folder + "/" + std::to_string(hex.first) + ".geojson");
     output_stream << isochrones.dump() << std::endl;
     output_stream.close();
