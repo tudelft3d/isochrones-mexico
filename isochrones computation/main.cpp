@@ -96,6 +96,7 @@ std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Conne
 nlohmann::json compute_isochrones(std::unordered_map<H3Index, double> &all_times, std::vector<double> &isochrone_times) {
   nlohmann::json isochrones;
   isochrones["type"] = "FeatureCollection";
+  isochrones["properties"] = nlohmann::json::object();
   isochrones["features"] = nlohmann::json::array();
   for (auto const &isochrone_time: isochrone_times) {
     std::vector<H3Index> smaller_hexes;
@@ -145,7 +146,7 @@ nlohmann::json compute_isochrones(std::unordered_map<H3Index, double> &all_times
 
 int main(int argc, const char * argv[]) {
   
-  std::string gtfs_folder = "/Users/ken/Downloads/gtfs";
+  std::string gtfs_folder = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/gtfs";
   std::string starting_points_file = "/Users/ken/Downloads/starting_points.geojson";
   std::string isochrones_folder = "/Users/ken/Downloads/isochrones";
   const int h3_resolution = 10;
@@ -404,7 +405,15 @@ int main(int argc, const char * argv[]) {
       ll.lat = degsToRads(stops[stop.second.stop].lat);
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
-      if (hexes[hex].name.empty()) hexes[hex].name = "Metro " + stops[stop.second.stop].name;
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Metro " + stops[stop.second.stop].name;
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "TL") continue;
@@ -414,7 +423,15 @@ int main(int argc, const char * argv[]) {
       ll.lat = degsToRads(stops[stop.second.stop].lat);
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
-      if (hexes[hex].name.empty()) hexes[hex].name = "Tren Ligero " + stops[stop.second.stop].name;
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Tren Ligero " + stops[stop.second.stop].name;
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "SUB") continue;
@@ -424,17 +441,34 @@ int main(int argc, const char * argv[]) {
       ll.lat = degsToRads(stops[stop.second.stop].lat);
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
-      if (hexes[hex].name.empty()) hexes[hex].name = "Suburbano " + stops[stop.second.stop].name;
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Suburbano " + stops[stop.second.stop].name;
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "MB") continue;
+    if (routes[trip.second.route].short_name == "SE L12") continue;
     for (auto const &stop: trip.second.stops) {
       LatLng ll;
       H3Index hex;
       ll.lat = degsToRads(stops[stop.second.stop].lat);
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
-      if (hexes[hex].name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) hexes[hex].name = "Metrobús " + stops[stop.second.stop].name;
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) hexes[hex].name = "Metrobús " + stops[stop.second.stop].name;
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "CBB") continue;
@@ -444,7 +478,34 @@ int main(int argc, const char * argv[]) {
       ll.lat = degsToRads(stops[stop.second.stop].lat);
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
-      if (hexes[hex].name.empty()) hexes[hex].name = "Cablebús " + stops[stop.second.stop].name;
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Cablebús " + stops[stop.second.stop].name;
+    }
+  } for (auto const &trip: trips) {
+    if (routes[trip.second.route].agency != "TROLE") continue;
+    if (routes[trip.second.route].short_name != "10") continue;
+    for (auto const &stop: trip.second.stops) {
+      LatLng ll;
+      H3Index hex;
+      ll.lat = degsToRads(stops[stop.second.stop].lat);
+      ll.lng = degsToRads(stops[stop.second.stop].lon);
+      latLngToCell(&ll, h3_resolution, &hex);
+      int64_t max_hexes;
+      maxGridDiskSize(3, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, 3, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].name.ends_with(stops[stop.second.stop].name)) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].name.empty()) hexes[hex].name = "Trolebús " + stops[stop.second.stop].name;
     }
   }
   
@@ -551,6 +612,8 @@ int main(int argc, const char * argv[]) {
     auto time_and_previous = compute_times(hexes, hex.first);
     
     nlohmann::json isochrones = compute_isochrones(time_and_previous.first, isochrone_times);
+    isochrones["properties"]["id"] = std::to_string(hex.first);
+    isochrones["properties"]["name"] = hex.second.name;
     output_stream.open(isochrones_folder + "/" + std::to_string(hex.first) + ".geojson");
     output_stream << isochrones.dump() << std::endl;
     output_stream.close();
