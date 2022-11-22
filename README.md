@@ -19,5 +19,6 @@ The isochrones are computed based on a network on top of an [H3](https://h3geo.o
 
 ## Known limitations
 
+- We assume that it is possible to walk at the same speed between any two adjacent hexagons (even when there's no direct road connection)
 - Issues in the Mexico City GTFS (eg Metro lines 1 and 12 in normal operation)
 - GDAL is not robust when dissolving polygons (some missing isochrones)

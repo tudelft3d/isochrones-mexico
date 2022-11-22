@@ -12,14 +12,14 @@ const map = new maplibre.Map( {
 // window.map = map;
 
 map.on('load', () => {
-    map.addSource("stations", {
-        "type": "geojson",
-        "data": `${base_url}/data/starting_points.geojson`
+    map.addSource("hovered_station", {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: [] },
     });
     map.addLayer({
-        "id": "starting_points_text",
+        "id": "hovered_station_text",
         "type": "symbol",
-        "source": "stations",
+        "source": "hovered_station",
         "layout": {
             "text-field": ["get", "name"],
             "text-anchor": "left",
@@ -35,16 +35,15 @@ map.on('load', () => {
             "text-font": ["Noto Sans Bold"]
         },
         "paint": {
-            "text-halo-width": 3,
+            "text-halo-width": 1,
             "text-halo-color": "#ffffff"
         },
-        "minzoom": 13
     },
     "place_label_continent");
     map.addLayer({
-        "id": "starting_points",
+        "id": "hovered_station",
         "type": "circle",
-        "source": "stations",
+        "source": "hovered_station",
         "paint": {
             "circle-radius": 3,
             "circle-color": "#000000",
@@ -52,14 +51,13 @@ map.on('load', () => {
             "circle-stroke-color": "#ffffff"
         }
     },
-    "starting_points_text");
+    "hovered_station_text");
     
 
     map.addSource("isochrones", {
         type: "geojson",
         data: { type: "FeatureCollection", features: [] },
     });
-
     map.addLayer(
     {
         id: "isochrones",
@@ -93,7 +91,7 @@ map.on('load', () => {
             ],
           },
         },
-        "starting_points"
+        "place_label_village"
     );
     map.addLayer(
     {
@@ -123,6 +121,48 @@ map.on('load', () => {
         "isochrones"
     );
 
+    map.addSource("stations", {
+        "type": "geojson",
+        "data": `${base_url}/data/starting_points.geojson`
+    });
+    map.addLayer({
+        "id": "starting_points_text",
+        "type": "symbol",
+        "source": "stations",
+        "layout": {
+            "text-field": ["get", "name"],
+            "text-anchor": "left",
+            "text-offset": [0.5, 0],
+            "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                13,
+                10,
+                15,
+                16],
+            "text-font": ["Noto Sans Bold"]
+        },
+        "paint": {
+            "text-halo-width": 3,
+            "text-halo-color": "#ffffff"
+        },
+        "minzoom": 13
+    },
+    "isochrones");
+    map.addLayer({
+        "id": "starting_points",
+        "type": "circle",
+        "source": "stations",
+        "paint": {
+            "circle-radius": 3,
+            "circle-color": "#000000",
+            "circle-stroke-width": 1,
+            "circle-stroke-color": "#ffffff"
+        }
+    },
+    "starting_points_text");
+
     map.on('mousemove', onMouseMove);
 });
 
@@ -139,6 +179,7 @@ function onMouseMove(e: MapMouseEvent) {
 
     if (features.length) {
         const station = features[features.length - 1]; // the largest according to the API scoring
+        (map.getSource("hovered_station") as GeoJSONSource).setData(station);
         const hoveredStation = station.properties?.id as Number;
 
         fetch(`${base_url}/data/isochrones/${hoveredStation}.geojson`).then(data => {
@@ -147,6 +188,7 @@ function onMouseMove(e: MapMouseEvent) {
             });
         });
     } else {
+        (map.getSource("hovered_station") as GeoJSONSource).setData({ type: "FeatureCollection", features: [] });
         (map.getSource("isochrones") as GeoJSONSource).setData({ type: "FeatureCollection", features: [] });
     }
 }
