@@ -45,7 +45,14 @@ map.on('load', () => {
         "type": "circle",
         "source": "hovered_station",
         "paint": {
-            "circle-radius": 3,
+            "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                13,
+                3,
+                15,
+                6],
             "circle-color": "#000000",
             "circle-stroke-width": 1,
             "circle-stroke-color": "#ffffff"
@@ -126,6 +133,25 @@ map.on('load', () => {
         "data": `${base_url}/data/starting_points.geojson`
     });
     map.addLayer({
+        "id": "starting_points",
+        "type": "circle",
+        "source": "stations",
+        "paint": {
+            "circle-radius": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                13,
+                3,
+                15,
+                6],
+            "circle-color": "#000000",
+            "circle-stroke-width": 1,
+            "circle-stroke-color": "#ffffff"
+        }
+    },
+    "isochrones");
+    map.addLayer({
         "id": "starting_points_text",
         "type": "symbol",
         "source": "stations",
@@ -150,18 +176,6 @@ map.on('load', () => {
         "minzoom": 13
     },
     "starting_points");
-    map.addLayer({
-        "id": "starting_points",
-        "type": "circle",
-        "source": "stations",
-        "paint": {
-            "circle-radius": 3,
-            "circle-color": "#000000",
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#ffffff"
-        }
-    },
-    "isochrones");
 
     map.on('mousemove', onMouseMove);
 });
