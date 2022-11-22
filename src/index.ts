@@ -139,7 +139,7 @@ function onMouseMove(e: MapMouseEvent) {
 
     if (features.length) {
         const station = features[features.length - 1]; // the largest according to the API scoring
-        const hoveredStation = station.properties?.new_id as Number;
+        const hoveredStation = station.properties?.id as Number;
 
         fetch(`${base_url}/data/isochrones/${hoveredStation}.geojson`).then(data => {
             data.json().then(json => {
