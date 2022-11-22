@@ -17,6 +17,31 @@ map.on('load', () => {
         "data": `${base_url}/data/starting_points.geojson`
     });
     map.addLayer({
+        "id": "starting_points_text",
+        "type": "symbol",
+        "source": "stations",
+        "layout": {
+            "text-field": ["get", "name"],
+            "text-anchor": "left",
+            "text-offset": [0.5, 0],
+            "text-size": [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                13,
+                10,
+                15,
+                16],
+            "text-font": ["Noto Sans Bold"]
+        },
+        "paint": {
+            "text-halo-width": 3,
+            "text-halo-color": "#ffffff"
+        },
+        "minzoom": 13
+    },
+    "place_label_continent");
+    map.addLayer({
         "id": "starting_points",
         "type": "circle",
         "source": "stations",
@@ -27,24 +52,8 @@ map.on('load', () => {
             "circle-stroke-color": "#ffffff"
         }
     },
-    "place_label_park");
-    map.addLayer({
-        "id": "starting_points_text",
-        "type": "symbol",
-        "source": "stations",
-        "layout": {
-            "text-field": ["get", "name"],
-            "text-anchor": "left",
-            "text-offset": [0.5, 0],
-            "text-size": 12
-        },
-        "paint": {
-            "text-halo-width": 3,
-            "text-halo-color": "#ffffff"
-        },
-        "minzoom": 13
-    },
-    "starting_points");
+    "starting_points_text");
+    
 
     map.addSource("isochrones", {
         type: "geojson",
@@ -68,25 +77,50 @@ map.on('load', () => {
               0.2,
             ],
             "fill-color": [
-              "interpolate",
-              ["linear"],
-              ["get", "duration"],
-              0,
-              "rgba(189,0,38,0.9)",
-              0.25,
-              "rgba(240,59,32,0.8)",
-              0.5,
-              "rgba(253,141,60,0.7)",
-              0.75,
-              "rgba(254,204,92,0.6)",
-              1,
-              "rgba(254,217,118, 0.5)"
-            //   300,
-            //   "rgba(255,255,178, 0.4)",
+                "interpolate",
+                ["linear"],
+                ["get", "duration"],
+                0,
+                "rgba(189,0,38,0.9)",
+                0.25,
+                "rgba(240,59,32,0.8)",
+                0.5,
+                "rgba(253,141,60,0.7)",
+                0.75,
+                "rgba(254,204,92,0.6)",
+                1,
+                "rgba(254,217,118, 0.5)"
             ],
           },
         },
         "starting_points"
+    );
+    map.addLayer(
+    {
+        id: "isochrones-outline",
+        type: "line",
+        source: "isochrones",
+        layout: {},
+        paint: {
+            "line-color": [
+                "interpolate",
+                ["linear"],
+                ["get", "duration"],
+                0,
+                "rgba(189,0,38,0.8)",
+                0.25,
+                "rgba(240,59,32,0.8)",
+                0.5,
+                "rgba(253,141,60,0.8)",
+                0.75,
+                "rgba(254,204,92,0.8)",
+                1.0,
+                "rgba(254,217,118,0.8)"
+            ],
+            "line-width": 1.5,
+          },
+        },
+        "isochrones"
     );
 
     map.on('mousemove', onMouseMove);
@@ -95,8 +129,8 @@ map.on('load', () => {
 function onMouseMove(e: MapMouseEvent) {
     const features = map.queryRenderedFeatures(
         [
-            [e.point.x - 10, e.point.y - 10],
-            [e.point.x + 10, e.point.y + 10],
+            [e.point.x - 5, e.point.y - 5],
+            [e.point.x + 5, e.point.y + 5],
         ],
         {
             layers: ["starting_points"],
