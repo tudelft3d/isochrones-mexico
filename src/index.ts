@@ -29,9 +29,9 @@ map.on('load', () => {
                 ["linear"],
                 ["zoom"],
                 13,
-                10,
+                14,
                 15,
-                16],
+                20],
             "text-font": ["Noto Sans Bold"]
         },
         "paint": {
@@ -140,7 +140,7 @@ map.on('load', () => {
                 13,
                 10,
                 15,
-                16],
+                20],
             "text-font": ["Noto Sans Bold"]
         },
         "paint": {
@@ -149,7 +149,7 @@ map.on('load', () => {
         },
         "minzoom": 13
     },
-    "isochrones");
+    "starting_points");
     map.addLayer({
         "id": "starting_points",
         "type": "circle",
@@ -161,7 +161,7 @@ map.on('load', () => {
             "circle-stroke-color": "#ffffff"
         }
     },
-    "starting_points_text");
+    "isochrones");
 
     map.on('mousemove', onMouseMove);
 });
