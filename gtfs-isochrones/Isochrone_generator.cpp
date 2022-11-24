@@ -1,5 +1,11 @@
 #include "Isochrone_generator.h"
 
+void Isochrone_generator::print_timer(clock_t start_time) {
+  clock_t stop_time = clock();
+  double seconds = (stop_time-start_time)/(double)CLOCKS_PER_SEC;
+  std::cout << seconds << " seconds";
+}
+
 std::map<std::string, std::size_t> Isochrone_generator::read_header(std::string &header_line) {
   std::map<std::string, std::size_t> header_fields;
   std::stringstream line_stream(header_line);
@@ -103,6 +109,7 @@ Isochrone_generator::Isochrone_generator(int h3_resolution) {
 
 int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
   std::cout << "Loading data..." << std::endl;
+  clock_t start_time = clock();
   
   std::string stops_file = gtfs_folder + "/stops.txt";
   std::string routes_file = gtfs_folder + "/routes.txt";
@@ -338,11 +345,17 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
 //      std::cout << "\t" << stop.first << ": from " << arrival_hours << ":" << arrival_minutes << ":" << arrival_seconds << " to " << departure_hours << ":" << departure_minutes << ":" << departure_seconds << " at " << stop.second.stop << std::endl;
 //    }
 //  }
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
   return 0;
 }
 
 void Isochrone_generator::create_hexes_for_stops(int hex_buffer_size) {
-  std::cout << "Generating hexes for stops..." << std::endl;
+  std::cout << "Generating hexes within buffer of stops..." << std::endl;
+  clock_t start_time = clock();
+  
   for (auto const &stop: stops) {
     LatLng ll;
     ll.lat = degsToRads(stop.second.lat);
@@ -352,7 +365,6 @@ void Isochrone_generator::create_hexes_for_stops(int hex_buffer_size) {
     hexes[hex].stops.push_back(stop.first);
   }
   
-  std::cout << "Adding hexes near stops..." << std::endl;
   std::unordered_set<H3Index> new_hexes;
   for (auto const &hex: hexes) {
     int64_t max_hexes;
@@ -363,9 +375,25 @@ void Isochrone_generator::create_hexes_for_stops(int hex_buffer_size) {
       if (hexes_within_distance[i] != 0) new_hexes.insert(hexes_within_distance[i]);
     } delete []hexes_within_distance;
   } for (auto const &hex: new_hexes) hexes[hex];
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }
 
 void Isochrone_generator::create_mexico_city_starting_points() {
+  std::cout << "Creating good starting points for Mexico City..." << std::endl;
+  clock_t start_time = clock();
+  
+  // Test
+  LatLng ll;
+  H3Index hex;
+  ll.lat = degsToRads(19.432963);
+  ll.lng = degsToRads(-99.132822);
+  latLngToCell(&ll, h3_resolution, &hex);
+  hexes[hex].stop_name = "Zócalo";
+  return;
+  
   for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "METRO") continue;
     for (auto const &stop: trip.second.stops) {
@@ -495,34 +523,46 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       }
     }
   }
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }
 
 void Isochrone_generator::write_starting_points(std::string &starting_points_file) {
   std::cout << "Writing isochrone starting points..." << std::endl;
+  clock_t start_time = clock();
+  
   std::ofstream output_stream;
   output_stream.open(starting_points_file);
-  nlohmann::json starting_points;
-  starting_points["type"] = "FeatureCollection";
-  starting_points["features"] = nlohmann::json::array();
+  nlohmann::json geojson;
+  geojson["type"] = "FeatureCollection";
+  geojson["features"] = nlohmann::json::array();
   for (auto const &hex: hexes) {
     if (hex.second.stop_name.empty()) continue;
     LatLng ll;
     cellToLatLng(hex.first, &ll);
-    starting_points["features"].push_back(nlohmann::json::object());
-    starting_points["features"].back()["type"] = "Feature";
-    starting_points["features"].back()["geometry"] = nlohmann::json::object();
-    starting_points["features"].back()["geometry"]["type"] = "Point";
-    starting_points["features"].back()["geometry"]["coordinates"] = {radsToDegs(ll.lng), radsToDegs(ll.lat)};
-    starting_points["features"].back()["properties"] = nlohmann::json::object();
-    starting_points["features"].back()["properties"]["id"] = std::to_string(hex.first);
-    starting_points["features"].back()["properties"]["system"] = hex.second.transport_type;
-    starting_points["features"].back()["properties"]["name"] = hex.second.stop_name;
-  } output_stream << starting_points.dump() << std::endl;
+    geojson["features"].push_back(nlohmann::json::object());
+    geojson["features"].back()["type"] = "Feature";
+    geojson["features"].back()["geometry"] = nlohmann::json::object();
+    geojson["features"].back()["geometry"]["type"] = "Point";
+    geojson["features"].back()["geometry"]["coordinates"] = {radsToDegs(ll.lng), radsToDegs(ll.lat)};
+    geojson["features"].back()["properties"] = nlohmann::json::object();
+    geojson["features"].back()["properties"]["id"] = std::to_string(hex.first);
+    geojson["features"].back()["properties"]["system"] = hex.second.transport_type;
+    geojson["features"].back()["properties"]["name"] = hex.second.stop_name;
+  } output_stream << geojson.dump() << std::endl;
   output_stream.close();
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }
 
 void Isochrone_generator::add_walking_connections(double walking_speed) {
   std::cout << "Adding walking connections..." << std::endl;
+  clock_t start_time = clock();
+  
   for (auto &hex: hexes) {
     int64_t max_hexes;
     maxGridDiskSize(1, &max_hexes);
@@ -543,9 +583,16 @@ void Isochrone_generator::add_walking_connections(double walking_speed) {
       }
     }
   }
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }
 
 void Isochrone_generator::add_transit_connections() {
+  std::cout << "Adding transit connections..." << std::endl;
+  clock_t start_time = clock();
+  
   for (auto const &trip: trips) {
     
     // Filtering
@@ -582,27 +629,38 @@ void Isochrone_generator::add_transit_connections() {
       ++next_stop;
     }
   }
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }
 
 void Isochrone_generator::write_isochrones_for_starting_points(std::string &isochrones_folder, std::vector<double> &isochrone_times) {
   std::ofstream output_stream;
   for (auto const &hex: hexes) {
     if (hex.second.stop_name.empty()) continue;
-    std::cout << "Computing isochrone for " << hex.second.transport_type << " " << hex.second.stop_name << "..." << std::endl;
+    std::cout << "Computing and writing isochrone for " << hex.second.transport_type << " " << hex.second.stop_name << "..." << std::endl;
+    clock_t start_time = clock();
     auto time_and_previous = compute_routes_from_hex(hexes, hex.first);
     
-    nlohmann::json isochrones = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
-    isochrones["properties"]["id"] = std::to_string(hex.first);
-    isochrones["properties"]["system"] = hex.second.transport_type;
-    isochrones["properties"]["name"] = hex.second.stop_name;
+    nlohmann::json geojson = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
+    geojson["properties"]["id"] = std::to_string(hex.first);
+    geojson["properties"]["system"] = hex.second.transport_type;
+    geojson["properties"]["name"] = hex.second.stop_name;
     output_stream.open(isochrones_folder + "/" + std::to_string(hex.first) + ".geojson");
-    output_stream << isochrones.dump() << std::endl;
+    output_stream << geojson.dump() << std::endl;
     output_stream.close();
+    
+    std::cout << "\tdone in ";
+    print_timer(start_time);
+    std::cout << std::endl;
   }
 }
 
-int Isochrone_generator::write_hexes(std::string &hexes_file) {
+int Isochrone_generator::write_hexes_gpkg(std::string &hexes_file) {
   std::cout << "Writing hexes..." << std::endl;
+  clock_t start_time = clock();
+  
   GDALAllRegister();
   const char *driver_name = "GPKG";
   GDALDriver *driver = GetGDALDriverManager()->GetDriverByName(driver_name);
@@ -613,8 +671,7 @@ int Isochrone_generator::write_hexes(std::string &hexes_file) {
       std::cerr << "Error: Couldn't erase existing file to create output file" << std::endl;
       return 1;
     } GDALClose(output_dataset);
-  } std::cout << "Writing output file... " << std::endl;
-  output_dataset = driver->Create(hexes_file.c_str(),0,0,0,GDT_Unknown,NULL);
+  } output_dataset = driver->Create(hexes_file.c_str(),0,0,0,GDT_Unknown,NULL);
   if (output_dataset == NULL) {
     std::cout << "Error: Could not create output file." << std::endl;
     return 1;
@@ -625,8 +682,7 @@ int Isochrone_generator::write_hexes(std::string &hexes_file) {
   if (hexes_layer == NULL) {
     std::cerr << "Error: Could not create hexes layer." << std::endl;
     return 1;
-  } OGRFieldDefn time_field("time", OFTReal);
-  for (auto const &hex: hexes) {
+  } for (auto const &hex: hexes) {
     CellBoundary cb;
     cellToBoundary(hex.first, &cb);
     OGRFeature *hex_feature = OGRFeature::CreateFeature(hexes_layer->GetLayerDefn());
@@ -642,6 +698,34 @@ int Isochrone_generator::write_hexes(std::string &hexes_file) {
       return 1;
     } OGRFeature::DestroyFeature(hex_feature);
   }
+  
+  GDALClose(output_dataset);
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
+  return 0;
+}
+
+int Isochrone_generator::write_connections_gpkg(std::string &connections_file) {
+  std::cout << "Writing connections..." << std::endl;
+  clock_t start_time = clock();
+  
+  GDALAllRegister();
+  const char *driver_name = "GPKG";
+  GDALDriver *driver = GetGDALDriverManager()->GetDriverByName(driver_name);
+  GDALDataset *output_dataset = (GDALDataset*) GDALOpenEx(connections_file.c_str(), GDAL_OF_READONLY, NULL, NULL, NULL);
+  if (output_dataset != NULL) {
+    std::cout << "Overwriting file..." << std::endl;
+    if (driver->Delete(connections_file.c_str())!= CE_None) {
+      std::cerr << "Error: Couldn't erase existing file to create output file" << std::endl;
+      return 1;
+    } GDALClose(output_dataset);
+  } output_dataset = driver->Create(connections_file.c_str(),0,0,0,GDT_Unknown,NULL);
+  if (output_dataset == NULL) {
+    std::cout << "Error: Could not create output file." << std::endl;
+    return 1;
+  } OGRSpatialReference spatial_reference;
+  spatial_reference.importFromEPSG(4326);
   
   OGRLayer *connections_layer = output_dataset->CreateLayer("connections", &spatial_reference, wkbLineString, NULL);
   if (connections_layer == NULL) {
@@ -676,5 +760,71 @@ int Isochrone_generator::write_hexes(std::string &hexes_file) {
   }
   
   GDALClose(output_dataset);
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
   return 0;
+}
+
+void Isochrone_generator::write_hexes_geojson(std::string &hexes_file) {
+  std::cout << "Writing hexes..." << std::endl;
+  clock_t start_time = clock();
+  
+  std::ofstream output_stream;
+  output_stream.open(hexes_file);
+  nlohmann::json geojson;
+  geojson["type"] = "FeatureCollection";
+  geojson["features"] = nlohmann::json::array();
+  for (auto const &hex: hexes) {
+//    if (hex.second.stop_name.empty()) continue;
+    CellBoundary cb;
+    cellToBoundary(hex.first, &cb);
+    geojson["features"].push_back(nlohmann::json::object());
+    geojson["features"].back()["type"] = "Feature";
+    geojson["features"].back()["geometry"] = nlohmann::json::object();
+    geojson["features"].back()["geometry"]["type"] = "Polygon";
+    geojson["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
+    geojson["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
+    for (int vertex = 0; vertex < cb.numVerts; ++vertex) {
+      geojson["features"].back()["geometry"]["coordinates"].back().push_back({radsToDegs(cb.verts[vertex].lng), radsToDegs(cb.verts[vertex].lat)});
+    }
+  } output_stream << geojson.dump() << std::endl;
+  output_stream.close();
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
+}
+
+void Isochrone_generator::write_connections_geojson(std::string &connections_file) {
+  std::cout << "Writing connections..." << std::endl;
+  clock_t start_time = clock();
+  
+  std::ofstream output_stream;
+  output_stream.open(connections_file);
+  nlohmann::json geojson;
+  geojson["type"] = "FeatureCollection";
+  geojson["features"] = nlohmann::json::array();
+  for (auto const &hex: hexes) {
+    for (auto const &connection: hex.second.connections) {
+      geojson["features"].push_back(nlohmann::json::object());
+      geojson["features"].back()["type"] = "Feature";
+      geojson["features"].back()["geometry"] = nlohmann::json::object();
+      geojson["features"].back()["geometry"]["type"] = "LineString";
+      geojson["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
+      LatLng hex_ll, connection_ll;
+      cellToLatLng(hex.first, &hex_ll);
+      cellToLatLng(connection.to, &connection_ll);
+      geojson["features"].back()["geometry"]["coordinates"].push_back({radsToDegs(hex_ll.lng), radsToDegs(hex_ll.lat)});
+      geojson["features"].back()["geometry"]["coordinates"].push_back({radsToDegs(connection_ll.lng), radsToDegs(connection_ll.lat)});
+      geojson["features"].back()["properties"] = nlohmann::json::object();
+      geojson["features"].back()["properties"]["wait_time"] = connection.wait_time;
+      geojson["features"].back()["properties"]["travel_time"] = connection.travel_time;
+    }
+  } output_stream << geojson.dump() << std::endl;
+  output_stream.close();
+  
+  std::cout << "\tdone in ";
+  print_timer(start_time);
+  std::cout << std::endl;
 }

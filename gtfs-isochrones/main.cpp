@@ -3,7 +3,6 @@
 int main(int argc, const char * argv[]) {
   
   std::string gtfs_folder = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/gtfs";
-  std::string hexes_file = "/Users/ken/Downloads/hexes.gpkg";
   std::string starting_points_file = "/Users/ken/Downloads/starting_points.geojson";
   std::string isochrones_folder = "/Users/ken/Downloads/isochrones";
   const int h3_resolution = 10;
@@ -36,9 +35,19 @@ int main(int argc, const char * argv[]) {
   // Compute isochrones
   isochrone_generator.write_isochrones_for_starting_points(isochrones_folder, isochrone_times);
   
-  // Write hexes (for debugging)
-//  error = isochrone_generator.write_hexes(hexes_file);
+  // Write hexes and connections (for debugging)
+//  std::string hexes_gpkg = "/Users/ken/Downloads/hexes.gpkg";
+//  std::string connections_gpkg = "/Users/ken/Downloads/connections.gpkg";
+//  error = isochrone_generator.write_hexes_gpkg(hexes_gpkg);
 //  if (error) return 1;
+//  error = isochrone_generator.write_connections_gpkg(connections_gpkg);
+//  if (error) return 1;
+//  
+//  // GeoJSON alternative (quick to write but slow to open)
+//  std::string hexes_geojson = "/Users/ken/Downloads/hexes.geojson";
+//  std::string connections_geojson = "/Users/ken/Downloads/connections.geojson";
+//  isochrone_generator.write_hexes_geojson(hexes_geojson);
+//  isochrone_generator.write_connections_geojson(connections_geojson);
   
   return 0;
 }
