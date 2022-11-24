@@ -4,6 +4,8 @@ example
 .DS_Store
 *.xcodeproj
 package-lock.json
+build
+*.entitlements
 
 # Logs
 logs
