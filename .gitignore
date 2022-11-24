@@ -3,6 +3,7 @@
 example
 .DS_Store
 *.xcodeproj
+package-lock.json
 
 # Logs
 logs
