@@ -34,16 +34,6 @@ int main(int argc, const char * argv[]) {
   
   // Compute isochrones
   isochrone_generator.write_isochrones_for_starting_points(isochrones_folder, isochrone_times);
-  
-  // Small test
-//  LatLng ll;
-//  H3Index hex;
-//  ll.lat = degsToRads(19.430745);
-//  ll.lng = degsToRads(-99.053286);
-//  latLngToCell(&ll, h3_resolution, &hex);
-//  auto time_and_previous = isochrone_generator.compute_routes_from_hex(hex);
-//  std::string hexes_geojson = "/Users/ken/Downloads/hexes.geojson";
-//  isochrone_generator.write_hexes_geojson(hexes_geojson, time_and_previous);
 
   // Write hexes and connections (for debugging)
 //  std::string hexes_gpkg = "/Users/ken/Downloads/hexes.gpkg";

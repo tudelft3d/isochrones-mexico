@@ -65,8 +65,6 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
     isochrones["features"].push_back(nlohmann::json::object());
     isochrones["features"].back()["type"] = "Feature";
     isochrones["features"].back()["geometry"] = nlohmann::json::object();
-    isochrones["features"].back()["geometry"]["type"] = "MultiPolygon";
-    isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
     isochrones["features"].back()["properties"] = nlohmann::json::object();
     isochrones["features"].back()["properties"]["duration"] = isochrone_time;
     
@@ -85,6 +83,8 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
     } OGRGeometry *hex_union = multipolygon.UnionCascaded();
     if (hex_union->getGeometryType() == wkbMultiPolygon) {
       OGRMultiPolygon *multipolygon = static_cast<OGRMultiPolygon *>(hex_union);
+      isochrones["features"].back()["geometry"]["type"] = "MultiPolygon";
+      isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
       for (int current_polygon = 0; current_polygon < multipolygon->getNumGeometries(); ++current_polygon) {
         OGRPolygon *polygon = multipolygon->getGeometryRef(current_polygon);
         isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
@@ -101,6 +101,24 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
           }
         }
       }
+    } else if (hex_union->getGeometryType() == wkbPolygon) {
+      OGRPolygon *polygon = static_cast<OGRPolygon *>(hex_union);
+      isochrones["features"].back()["geometry"]["type"] = "Polygon";
+      isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
+      isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
+      for (int current_point = 0; current_point < polygon->getExteriorRing()->getNumPoints(); ++current_point) {
+        isochrones["features"].back()["geometry"]["coordinates"].back().push_back({polygon->getExteriorRing()->getX(current_point),
+                                                                                   polygon->getExteriorRing()->getY(current_point)});
+      } for (int current_ring = 0; current_ring < polygon->getNumInteriorRings(); ++current_ring) {
+        OGRLinearRing *ring = polygon->getInteriorRing(current_ring);
+        isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
+        for (int current_point = 0; current_point < ring->getNumPoints(); ++current_point) {
+          isochrones["features"].back()["geometry"]["coordinates"].back().push_back({ring->getX(current_point),
+                                                                                     ring->getY(current_point)});
+        }
+      }
+    } else {
+      std::cout << "\terror: union produced unknown output type" << std::endl;
     }
     
   }
@@ -390,19 +408,6 @@ void Isochrone_generator::create_mexico_city_starting_points() {
   std::cout << "Creating good starting points for Mexico City..." << std::endl;
   clock_t start_time = clock();
   
-  // Test
-//  LatLng ll;
-//  H3Index hex;
-//  ll.lat = degsToRads(19.432963);
-//  ll.lng = degsToRads(-99.132822);
-//  latLngToCell(&ll, h3_resolution, &hex);
-//  hexes[hex].stop_name = "Zócalo";
-//  ll.lat = degsToRads(19.430745);
-//  ll.lng = degsToRads(-99.053286);
-//  latLngToCell(&ll, h3_resolution, &hex);
-//  hexes[hex].stop_name = "Alameda oriente";
-//  return;
-  
   for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "METRO") continue;
     for (auto const &stop: trip.second.stops) {
@@ -420,7 +425,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Metro";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
@@ -441,7 +446,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Tren Ligero";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
@@ -462,7 +467,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Suburbano";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
@@ -484,7 +489,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Metrobús";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
@@ -505,7 +510,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Cablebús";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
@@ -527,10 +532,14 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = routes[trip.second.route].agency;
+        hexes[hex].transport_type = "Trolebús elevado";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
+  }
+  
+  for (auto &hex: hexes) {
+    if (!hex.second.stop_name.empty()) hex.second.stop_name = hex.second.transport_type + " " + hex.second.stop_name;
   }
   
   std::cout << "\tdone in ";
@@ -648,7 +657,7 @@ void Isochrone_generator::write_isochrones_for_starting_points(std::string &isoc
   std::ofstream output_stream;
   for (auto const &hex: hexes) {
     if (hex.second.stop_name.empty()) continue;
-    std::cout << "Computing and writing isochrone for " << hex.second.transport_type << " " << hex.second.stop_name << "..." << std::endl;
+    std::cout << "Computing and writing isochrone for " << hex.second.stop_name << "..." << std::endl;
     clock_t start_time = clock();
     auto time_and_previous = compute_routes_from_hex(hex.first);
     
