@@ -21,11 +21,13 @@ struct Stop {
 };
 
 struct TripFrequency {
-  int start, end, headway;
+  int start, end; // seconds from start of day
+  int headway; // seconds
 };
 
 struct TripStop {
-  int sequence, arrival, departure;
+  int sequence;
+  int arrival, departure; // seconds from start of day
   std::string stop;
 };
 

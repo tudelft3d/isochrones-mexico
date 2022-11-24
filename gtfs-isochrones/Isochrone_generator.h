@@ -26,6 +26,7 @@ class Isochrone_generator {
   std::unordered_map<std::string, Trip> trips;
   std::unordered_map<H3Index, Hex> hexes;
   
+  std::map<std::string, std::size_t> read_header(std::string &header_line);
   std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(std::unordered_map<H3Index, Hex> &hexes, H3Index start);
   nlohmann::json create_isochrones_from_routes(std::unordered_map<H3Index, double> &all_times, std::vector<double> &isochrone_times);
 public:

@@ -1,5 +1,17 @@
 #include "Isochrone_generator.h"
 
+std::map<std::string, std::size_t> Isochrone_generator::read_header(std::string &header_line) {
+  std::map<std::string, std::size_t> header_fields;
+  std::stringstream line_stream(header_line);
+  std::vector<std::string> line_elements;
+  std::string element;
+  while (getline(line_stream, element, ',')) {
+    while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+//    std::cout << "\"" << element << "\"" << std::endl;
+    header_fields[element] = header_fields.size();
+  } return header_fields;
+}
+
 std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(std::unordered_map<H3Index, Hex> &hexes, H3Index start) {
   std::unordered_map<H3Index, double> time;
   std::unordered_map<H3Index, Connection> previous;
@@ -103,6 +115,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
   std::ifstream stops_stream(stops_file);
   std::string line;
   getline(stops_stream, line);
+  std::map<std::string, std::size_t> header = read_header(line);
   while (getline(stops_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -110,7 +123,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     while (getline(line_stream, element, ',')) {
       while (element.back() == '\r' || element.back() == '\n') element.pop_back();
       line_elements.push_back(element);
-    } if (line_elements[1].front() == '"' && line_elements[2].back() == '"') {
+    } if (line_elements[1].front() == '"' && line_elements[2].back() == '"') { // small hack for Mexico City data
       line_elements[1].erase(0, 1);
       line_elements[2].pop_back();
       line_elements[1] = line_elements[1] + line_elements[2];
@@ -118,19 +131,21 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 6) {
       std::cout << "Problems parsing stops" << std::endl;
       return 1;
-    } stops[line_elements[0]].id = line_elements[0];
-    stops[line_elements[0]].name = line_elements[1];
-    stops[line_elements[0]].lat = std::stod(line_elements[2]);
-    stops[line_elements[0]].lon = std::stod(line_elements[3]);
-    stops[line_elements[0]].zone = line_elements[4];
-    if (line_elements[5] == "1") stops[line_elements[0]].wheelchair_boarding = true;
-    else stops[line_elements[0]].wheelchair_boarding = false;
+    } std::string id = line_elements[header["stop_id"]];
+    stops[id].id = id;
+    stops[id].name = line_elements[header["stop_name"]];
+    stops[id].lat = std::stod(line_elements[header["stop_lat"]]);
+    stops[id].lon = std::stod(line_elements[header["stop_lon"]]);
+    stops[id].zone = line_elements[header["zone_id"]];
+    if (line_elements[header["wheelchair_boarding"]] == "1") stops[id].wheelchair_boarding = true;
+    else stops[id].wheelchair_boarding = false;
   } stops_stream.close();
   std::cout << "\t" << stops.size() << " stops" << std::endl;
 //  for (auto const &stop: stops) std::cout << "Stop[" << stop.second.id << "]: " << stop.second.name << " at " << stop.second.lat << ", " << stop.second.lon << std::endl;
   
   std::ifstream routes_stream(routes_file);
   getline(routes_stream, line);
+  header = read_header(line);
   while (getline(routes_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -141,16 +156,18 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 7) {
       std::cout << "Problems parsing routes" << std::endl;
       return 1;
-    } routes[line_elements[0]].id = line_elements[0];
-    routes[line_elements[0]].agency = line_elements[1];
-    routes[line_elements[0]].short_name = line_elements[2];
-    routes[line_elements[0]].long_name = line_elements[3];
+    } std::string id = line_elements[header["route_id"]];
+    routes[id].id = id;
+    routes[id].agency = line_elements[header["agency_id"]];
+    routes[id].short_name = line_elements[header["route_short_name"]];
+    routes[id].long_name = line_elements[header["route_long_name"]];
   } routes_stream.close();
   std::cout << "\t" << routes.size() << " routes" << std::endl;
 //  for (auto const &route: routes) std::cout << "Route[" << route.second.id << "]: " << route.second.agency << " " << route.second.short_name << " is " << route.second.long_name << std::endl;
   
   std::ifstream agencies_stream(agencies_file);
   getline(agencies_stream, line);
+  header = read_header(line);
   while (getline(agencies_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -161,14 +178,16 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 5) {
       std::cout << "Problems parsing agencies" << std::endl;
       return 1;
-    } agencies[line_elements[0]].id = line_elements[0];
-    agencies[line_elements[0]].name = line_elements[1];
+    } std::string id = line_elements[header["agency_id"]];
+    agencies[id].id = id;
+    agencies[id].name = line_elements[header["agency_name"]];
   } agencies_stream.close();
   std::cout << "\t" << agencies.size() << " agencies" << std::endl;
 //  for (auto const &agency: agencies) std::cout << "Agency[" << agency.second.id << "]: " << agency.second.name << std::endl;
   
   std::ifstream services_stream(services_file);
   getline(services_stream, line);
+  header = read_header(line);
   while (getline(services_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -179,27 +198,29 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 10) {
       std::cout << "Problems parsing services" << std::endl;
       return 1;
-    } services[line_elements[0]].id = line_elements[0];
-    if (line_elements[1] == "1") services[line_elements[0]].monday = true;
-    else services[line_elements[0]].monday = false;
-    if (line_elements[2] == "1") services[line_elements[0]].tuesday = true;
-    else services[line_elements[0]].tuesday = false;
-    if (line_elements[3] == "1") services[line_elements[0]].wednesday = true;
-    else services[line_elements[0]].wednesday = false;
-    if (line_elements[4] == "1") services[line_elements[0]].thursday = true;
-    else services[line_elements[0]].thursday = false;
-    if (line_elements[5] == "1") services[line_elements[0]].friday = true;
-    else services[line_elements[0]].friday = false;
-    if (line_elements[6] == "1") services[line_elements[0]].saturday = true;
-    else services[line_elements[0]].saturday = false;
-    if (line_elements[7] == "1") services[line_elements[0]].sunday = true;
-    else services[line_elements[0]].sunday = false;
+    } std::string id = line_elements[header["service_id"]];
+    services[id].id = id;
+    if (line_elements[header["monday"]] == "1") services[id].monday = true;
+    else services[id].monday = false;
+    if (line_elements[header["tuesday"]] == "1") services[id].tuesday = true;
+    else services[id].tuesday = false;
+    if (line_elements[header["wednesday"]] == "1") services[id].wednesday = true;
+    else services[id].wednesday = false;
+    if (line_elements[header["thursday"]] == "1") services[id].thursday = true;
+    else services[id].thursday = false;
+    if (line_elements[header["friday"]] == "1") services[id].friday = true;
+    else services[id].friday = false;
+    if (line_elements[header["saturday"]] == "1") services[id].saturday = true;
+    else services[id].saturday = false;
+    if (line_elements[header["sunday"]] == "1") services[id].sunday = true;
+    else services[id].sunday = false;
   } services_stream.close();
   std::cout << "\t" << services.size() << " services" << std::endl;
 //  for (auto const &service: services) std::cout << "Service[" << service.second.id << "]: M = " << service.second.monday << " Tu = " << service.second.tuesday << " W = " << service.second.wednesday << " Th = " << service.second.thursday << " F = " << service.second.friday << " Sa = " << service.second.saturday << " Su = " << service.second.sunday << std::endl;
   
   std::ifstream trips_stream(trips_file);
   getline(trips_stream, line);
+  header = read_header(line);
   while (getline(trips_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -210,17 +231,19 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 7) {
       std::cout << "Problems parsing trips" << std::endl;
       return 1;
-    } trips[line_elements[2]].id = line_elements[2];
-    trips[line_elements[2]].route = line_elements[0];
-    trips[line_elements[2]].service = line_elements[1];
-    trips[line_elements[2]].head_sign = line_elements[3];
-    trips[line_elements[2]].short_name = line_elements[4];
+    } std::string id = line_elements[header["trip_id"]];
+    trips[id].id = id;
+    trips[id].route = line_elements[header["route_id"]];
+    trips[id].service = line_elements[header["service_id"]];
+    trips[id].head_sign = line_elements[header["trip_headsign"]];
+    trips[id].short_name = line_elements[header["trip_short_name"]];
   } trips_stream.close();
   std::cout << "\t" << trips.size() << " trips" << std::endl;
 //  for (auto const &trip: trips) std::cout << "Trip[" << trip.second.id << "] from route " << trip.second.route << " service " << trip.second.service << ": " << trip.second.head_sign << std::endl;
   
   std::ifstream frequencies_stream(frequencies_file);
   getline(frequencies_stream, line);
+  header = read_header(line);
   while (getline(frequencies_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -231,7 +254,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 5) {
       std::cout << "Problems parsing frequencies" << std::endl;
       return 1;
-    } std::stringstream start_stream(line_elements[1]), end_stream(line_elements[2]);
+    } std::stringstream start_stream(line_elements[header["start_time"]]), end_stream(line_elements[header["end_time"]]);
     std::vector<std::string> start_elements, end_elements;
     while (getline(start_stream, element, ':')) start_elements.push_back(element);
     if (start_elements.size() != 3) {
@@ -243,10 +266,11 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
       std::cout << "Problems parsing frequency end time" << std::endl;
       return 1;
     } unsigned int end = 3600*std::stoi(end_elements[0]) + 60*std::stoi(end_elements[1]) + std::stoi(end_elements[2]);
-    trips[line_elements[0]].frequencies.emplace_back();
-    trips[line_elements[0]].frequencies.back().start = start;
-    trips[line_elements[0]].frequencies.back().end = end;
-    trips[line_elements[0]].frequencies.back().headway = std::stoi(line_elements[3]);
+    std::string trip_id = line_elements[header["trip_id"]];
+    trips[trip_id].frequencies.emplace_back();
+    trips[trip_id].frequencies.back().start = start;
+    trips[trip_id].frequencies.back().end = end;
+    trips[trip_id].frequencies.back().headway = std::stoi(line_elements[header["headway_secs"]]);
   } frequencies_stream.close();
   int frequencies_parsed = 0;
   for (auto const &trip: trips) frequencies_parsed += trip.second.frequencies.size();
@@ -266,6 +290,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
   
   std::ifstream stop_times_stream(stop_times_file);
   getline(stop_times_stream, line);
+  header = read_header(line);
   while (getline(stop_times_stream, line)) {
     std::stringstream line_stream(line);
     std::vector<std::string> line_elements;
@@ -276,7 +301,8 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     } if (line_elements.size() != 6) {
       std::cout << "Problems parsing stop times" << std::endl;
       return 1;
-    } std::stringstream arrival_stream(line_elements[1]), departure_stream(line_elements[2]);
+    } std::string trip_id = line_elements[header["trip_id"]];
+    std::stringstream arrival_stream(line_elements[header["arrival_time"]]), departure_stream(line_elements[header["departure_time"]]);
     std::vector<std::string> arrival_elements, departure_elements;
     while (getline(arrival_stream, element, ':')) arrival_elements.push_back(element);
     if (arrival_elements.size() != 3) {
@@ -288,11 +314,11 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
       std::cout << "Problems parsing stop departure time" << std::endl;
       return 1;
     } unsigned int departure = 3600*std::stoi(departure_elements[0]) + 60*std::stoi(departure_elements[1]) + std::stoi(departure_elements[2]);
-    unsigned int sequence = std::stoi(line_elements[4]);
-    trips[line_elements[0]].stops[sequence].sequence = sequence;
-    trips[line_elements[0]].stops[sequence].arrival = arrival;
-    trips[line_elements[0]].stops[sequence].departure = departure;
-    trips[line_elements[0]].stops[sequence].stop = line_elements[3];
+    unsigned int sequence = std::stoi(line_elements[header["stop_sequence"]]);
+    trips[trip_id].stops[sequence].sequence = sequence;
+    trips[trip_id].stops[sequence].arrival = arrival;
+    trips[trip_id].stops[sequence].departure = departure;
+    trips[trip_id].stops[sequence].stop = line_elements[header["stop_id"]];
   } int stop_times_parsed = 0;
   for (auto const &trip: trips) stop_times_parsed += trip.second.stops.size();
   std::cout << "\t" << stop_times_parsed << " stop times" << std::endl;
