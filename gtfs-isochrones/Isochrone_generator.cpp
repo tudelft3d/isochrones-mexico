@@ -1,4 +1,4 @@
-#include "Isochrone_generator.h"
+#include "Isochrone_generator.hpp"
 
 void Isochrone_generator::print_timer(clock_t start_time) {
   clock_t stop_time = clock();
@@ -18,7 +18,7 @@ std::map<std::string, std::size_t> Isochrone_generator::read_header(std::string 
   } return header_fields;
 }
 
-std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(std::unordered_map<H3Index, Hex> &hexes, H3Index start) {
+std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(H3Index start) {
   std::unordered_map<H3Index, double> time;
   std::unordered_map<H3Index, Connection> previous;
   std::set<std::pair<double, H3Index>> queue;
@@ -69,6 +69,8 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
     isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
     isochrones["features"].back()["properties"] = nlohmann::json::object();
     isochrones["features"].back()["properties"]["duration"] = isochrone_time;
+    
+    // GDAL code (not robust)
     OGRMultiPolygon multipolygon;
     for (auto const &hex: smaller_hexes) {
       CellBoundary cb;
@@ -100,7 +102,10 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
         }
       }
     }
-  } return isochrones;
+    
+  }
+  
+  return isochrones;
 }
 
 Isochrone_generator::Isochrone_generator(int h3_resolution) {
@@ -386,13 +391,17 @@ void Isochrone_generator::create_mexico_city_starting_points() {
   clock_t start_time = clock();
   
   // Test
-  LatLng ll;
-  H3Index hex;
-  ll.lat = degsToRads(19.432963);
-  ll.lng = degsToRads(-99.132822);
-  latLngToCell(&ll, h3_resolution, &hex);
-  hexes[hex].stop_name = "Zócalo";
-  return;
+//  LatLng ll;
+//  H3Index hex;
+//  ll.lat = degsToRads(19.432963);
+//  ll.lng = degsToRads(-99.132822);
+//  latLngToCell(&ll, h3_resolution, &hex);
+//  hexes[hex].stop_name = "Zócalo";
+//  ll.lat = degsToRads(19.430745);
+//  ll.lng = degsToRads(-99.053286);
+//  latLngToCell(&ll, h3_resolution, &hex);
+//  hexes[hex].stop_name = "Alameda oriente";
+//  return;
   
   for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "METRO") continue;
@@ -641,7 +650,7 @@ void Isochrone_generator::write_isochrones_for_starting_points(std::string &isoc
     if (hex.second.stop_name.empty()) continue;
     std::cout << "Computing and writing isochrone for " << hex.second.transport_type << " " << hex.second.stop_name << "..." << std::endl;
     clock_t start_time = clock();
-    auto time_and_previous = compute_routes_from_hex(hexes, hex.first);
+    auto time_and_previous = compute_routes_from_hex(hex.first);
     
     nlohmann::json geojson = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
     geojson["properties"]["id"] = std::to_string(hex.first);

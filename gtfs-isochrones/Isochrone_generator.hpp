@@ -1,5 +1,5 @@
-#ifndef Isochrone_generator_h
-#define Isochrone_generator_h
+#ifndef Isochrone_generator_hpp
+#define Isochrone_generator_hpp
 
 #include <iostream>
 #include <fstream>
@@ -11,7 +11,6 @@
 #include <unordered_set>
 #include <unordered_map>
 
-#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <ogrsf_frmts.h>
 #include <h3/h3api.h>
 #include <nlohmann/json.hpp>
@@ -30,7 +29,7 @@ class Isochrone_generator {
   
   void print_timer(clock_t start_time);
   std::map<std::string, std::size_t> read_header(std::string &header_line);
-  std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(std::unordered_map<H3Index, Hex> &hexes, H3Index start);
+  std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(H3Index start);
   nlohmann::json create_isochrones_from_routes(std::unordered_map<H3Index, double> &all_times, std::vector<double> &isochrone_times);
 public:
   Isochrone_generator(int h3_resolution);
@@ -48,4 +47,4 @@ public:
   void write_connections_geojson(std::string &connections_file);
 };
 
-#endif /* Isochrone_generator_h */
+#endif /* Isochrone_generator_hpp */
