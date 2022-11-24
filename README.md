@@ -8,7 +8,7 @@ The map is built with [MapLibre](https://maplibre.org/) using vector tiles and t
 
 The C++ code for this is in the gtfs-isochrones folder.
 
-The isochrones are computed based on a network on top of an [H3](https://h3geo.org) hexagon grid with edges derived from GTFS trips (worst case wait time + travel time) and additional edges between adjacent hexagons (based on walking speed). The map uses the trips available based on a mid-day weekday schedule (Wednesday at 12:35).
+The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/mexico-city/data/data.zip), are computed based on a network on top of an [H3](https://h3geo.org) hexagon grid with edges derived from GTFS trips (worst case wait time + travel time) and additional edges between adjacent hexagons (based on walking speed). The map uses the trips available based on a mid-day weekday schedule (Wednesday at 12:35).
 
 ## How to build the web map?
 
