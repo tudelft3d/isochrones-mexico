@@ -26,3 +26,9 @@ The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/
 - We assume that it is possible to walk at the same speed between any two adjacent H3 hexagons (even when there's no direct road connection, the route is not straight or the terrain isn't flat)
 - Issues in the Mexico City GTFS (eg Metro lines 1 and 12 operating normally, some inconsistent station locations)
 - Limited coverage of the Mexico City GTFS (eg only a few private operators, limited coverage outside of Mexico City proper)
+
+## Ideas for improvement
+
+- Use OSM road network for walking routes
+- Polygon simplification
+- More starting points
