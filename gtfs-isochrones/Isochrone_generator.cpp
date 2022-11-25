@@ -68,7 +68,6 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
     isochrones["features"].back()["properties"] = nlohmann::json::object();
     isochrones["features"].back()["properties"]["duration"] = isochrone_time;
     
-    // GDAL code (not robust)
     OGRMultiPolygon multipolygon;
     for (auto const &hex: smaller_hexes) {
       CellBoundary cb;
@@ -120,7 +119,6 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
     } else {
       std::cout << "\terror: union produced unknown output type" << std::endl;
     }
-    
   }
   
   return isochrones;
@@ -407,6 +405,7 @@ void Isochrone_generator::create_hexes_for_stops(int hex_buffer_size) {
 void Isochrone_generator::create_mexico_city_starting_points() {
   std::cout << "Creating good starting points for Mexico City..." << std::endl;
   clock_t start_time = clock();
+  const int same_station_search_size = 3;
   
   for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "METRO") continue;
@@ -417,9 +416,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
@@ -438,9 +437,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
@@ -459,9 +458,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
@@ -481,9 +480,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
@@ -502,9 +501,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
@@ -524,15 +523,15 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       ll.lng = degsToRads(stops[stop.second.stop].lon);
       latLngToCell(&ll, h3_resolution, &hex);
       int64_t max_hexes;
-      maxGridDiskSize(3, &max_hexes);
+      maxGridDiskSize(same_station_search_size, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
-      gridDisk(hex, 3, hexes_within_distance);
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
       bool match_found = false;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
       if (!match_found && hexes[hex].stop_name.empty()) {
-        hexes[hex].transport_type = "Trolebús elevado";
+        hexes[hex].transport_type = "Trolebús";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
