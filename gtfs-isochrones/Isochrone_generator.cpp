@@ -18,6 +18,31 @@ std::map<std::string, std::size_t> Isochrone_generator::read_header(std::string 
   } return header_fields;
 }
 
+void Isochrone_generator::add_walking_connection(H3Index start, H3Index end, double walking_speed) {
+  if (start == end) return;
+  int64_t distance_cells;
+  gridDistance(start, end, &distance_cells);
+  LatLng start_ll, end_ll;
+  cellToLatLng(start, &start_ll);
+  cellToLatLng(end, &end_ll);
+  if (distance_cells == 1) {
+    double distance_km = greatCircleDistanceKm(&start_ll, &end_ll);
+    hexes[start].connections.emplace_back();
+    hexes[start].connections.back().to = end;
+    hexes[start].connections.back().travel_time = distance_km/walking_speed;
+    hexes[start].connections.back().wait_time = 0.0;
+    hexes[start].connections.back().how = "walk";
+  } else {
+    LatLng mid_ll;
+    mid_ll.lat = (start_ll.lat+end_ll.lat)/2.0;
+    mid_ll.lng = (start_ll.lng+end_ll.lng)/2.0;
+    H3Index mid;
+    latLngToCell(&mid_ll, h3_resolution, &mid);
+    add_walking_connection(start, mid, walking_speed);
+    add_walking_connection(mid, end, walking_speed);
+  }
+}
+
 std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(H3Index start) {
   std::unordered_map<H3Index, double> time;
   std::unordered_map<H3Index, Connection> previous;
@@ -576,30 +601,51 @@ void Isochrone_generator::write_starting_points(std::string &starting_points_fil
   std::cout << std::endl;
 }
 
-void Isochrone_generator::add_walking_connections(double walking_speed) {
+void Isochrone_generator::add_walking_connections(std::string &osm, double walking_speed) {
   std::cout << "Adding walking connections..." << std::endl;
   clock_t start_time = clock();
   
-  for (auto &hex: hexes) {
-    int64_t max_hexes;
-    maxGridDiskSize(1, &max_hexes);
-    H3Index *hexes_within_distance = new H3Index[max_hexes];
-    gridDisk(hex.first, 1, hexes_within_distance);
-    LatLng from_ll;
-    cellToLatLng(hex.first, &from_ll);
-    for (int i = 0; i < max_hexes; ++i) {
-      if (hexes_within_distance[i] != 0 && hexes.count(hexes_within_distance[i])) {
-        LatLng to_ll;
-        cellToLatLng(hexes_within_distance[i], &to_ll);
-        double distance = greatCircleDistanceKm(&from_ll, &to_ll);
-        hex.second.connections.emplace_back();
-        hex.second.connections.back().to = hexes_within_distance[i];
-        hex.second.connections.back().travel_time = distance/walking_speed;
-        hex.second.connections.back().wait_time = 0.0;
-        hex.second.connections.back().how = "walk";
-      }
+  // Use OSM street network
+  osmium::io::Reader reader{osm.c_str(), osmium::osm_entity_bits::node | osmium::osm_entity_bits::way};
+  
+  using index_type = osmium::index::map::FlexMem<osmium::unsigned_object_id_type, osmium::Location>;
+  using location_handler_type = osmium::handler::NodeLocationsForWays<index_type>;
+  index_type index;
+  location_handler_type location_handler{index};
+
+  RoadHandler handler;
+  handler.hexes = &hexes;
+  handler.h3_resolution = h3_resolution;
+  osmium::apply(reader, location_handler, handler);
+  reader.close();
+  
+  for (auto const &from_hex: handler.walking_connections) {
+    for (auto const &to_hex: from_hex.second) {
+      add_walking_connection(from_hex.first, to_hex, walking_speed);
     }
   }
+  
+  // Walking connections between all adjacent hexes
+//  for (auto &hex: hexes) {
+//    int64_t max_hexes;
+//    maxGridDiskSize(1, &max_hexes);
+//    H3Index *hexes_within_distance = new H3Index[max_hexes];
+//    gridDisk(hex.first, 1, hexes_within_distance);
+//    LatLng from_ll;
+//    cellToLatLng(hex.first, &from_ll);
+//    for (int i = 0; i < max_hexes; ++i) {
+//      if (hexes_within_distance[i] != 0 && hexes.count(hexes_within_distance[i])) {
+//        LatLng to_ll;
+//        cellToLatLng(hexes_within_distance[i], &to_ll);
+//        double distance = greatCircleDistanceKm(&from_ll, &to_ll);
+//        hex.second.connections.emplace_back();
+//        hex.second.connections.back().to = hexes_within_distance[i];
+//        hex.second.connections.back().travel_time = distance/walking_speed;
+//        hex.second.connections.back().wait_time = 0.0;
+//        hex.second.connections.back().how = "walk";
+//      }
+//    } delete []hexes_within_distance;
+//  }
   
   std::cout << "\tdone in ";
   print_timer(start_time);
