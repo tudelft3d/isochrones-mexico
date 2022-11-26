@@ -67,6 +67,7 @@ class Isochrone_generator {
   
   void print_timer(clock_t start_time);
   std::map<std::string, std::size_t> read_header(std::string &header_line);
+  void add_transit_line(const char *system, const char *line, std::vector<Stop> &stops, double total_time, double frequency);
   void add_walking_connection(H3Index start, H3Index end, double walking_speed);
   std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(H3Index start);
   nlohmann::json create_isochrones_from_routes(std::unordered_map<H3Index, double> &all_times, std::vector<double> &isochrone_times);
@@ -74,6 +75,7 @@ public:
   Isochrone_generator(int h3_resolution);
   
   int load_gtfs_data(std::string &gtfs_folder);
+  void add_more_stops();
   void create_hexes_for_stops(int hex_buffer_size);
   void create_mexico_city_starting_points();
   void write_starting_points(std::string &starting_points_file);

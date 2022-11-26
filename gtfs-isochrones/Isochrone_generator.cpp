@@ -18,6 +18,65 @@ std::map<std::string, std::size_t> Isochrone_generator::read_header(std::string 
   } return header_fields;
 }
 
+void Isochrone_generator::add_transit_line(const char *system, const char *line, std::vector<Stop> &stops, double total_time, double frequency) {
+  
+  // Add stops
+  for (auto const &stop: stops) {
+    LatLng ll;
+    H3Index hex;
+    ll.lat = degsToRads(stop.lat);
+    ll.lng = degsToRads(stop.lon);
+    latLngToCell(&ll, h3_resolution, &hex);
+    if (this->hexes[hex].stop_name.empty()) {
+      this->hexes[hex].transport_type = system;
+      this->hexes[hex].stop_name = stop.name;
+    }
+  }
+  
+  // Compute total length
+  double total_length = 0.0;
+  std::vector<Stop>::const_iterator prev_stop = stops.begin();
+  std::vector<Stop>::const_iterator next_stop = prev_stop;
+  ++next_stop;
+  while (next_stop != stops.end()) {
+    LatLng prev_ll, next_ll;
+    prev_ll.lat = prev_stop->lat;
+    prev_ll.lng = prev_stop->lon;
+    next_ll.lat = next_stop->lat;
+    next_ll.lng = next_stop->lon;
+    total_length += greatCircleDistanceKm(&prev_ll, &next_ll);
+    ++prev_stop;
+    ++next_stop;
+  }
+  
+  // Add connections
+  prev_stop = stops.begin();
+  next_stop = prev_stop;
+  ++next_stop;
+  while (next_stop != stops.end()) {
+    LatLng prev_ll, next_ll;
+    prev_ll.lat = prev_stop->lat;
+    prev_ll.lng = prev_stop->lon;
+    next_ll.lat = next_stop->lat;
+    next_ll.lng = next_stop->lon;
+    double this_length = greatCircleDistanceKm(&prev_ll, &next_ll);
+    H3Index prev_hex, next_hex;
+    latLngToCell(&prev_ll, h3_resolution, &prev_hex);
+    latLngToCell(&next_ll, h3_resolution, &next_hex);
+//    std::cout << "Adding connection between " << prev_stop->name << " and " << next_stop->name << " in " << total_time*this_length/total_length << " seconds (" << this_length << " km)" << std::endl;
+    this->hexes[prev_hex].connections.emplace_back();
+    this->hexes[prev_hex].connections.back().to = next_hex;
+    this->hexes[prev_hex].connections.back().travel_time = total_time*this_length/(total_length*3600.0);
+    this->hexes[prev_hex].connections.back().wait_time = frequency;
+    this->hexes[next_hex].connections.emplace_back();
+    this->hexes[next_hex].connections.back().to = prev_hex;
+    this->hexes[next_hex].connections.back().travel_time = total_time*this_length/(total_length*3600.0);
+    this->hexes[next_hex].connections.back().wait_time = frequency;
+    ++prev_stop;
+    ++next_stop;
+  }
+}
+
 void Isochrone_generator::add_walking_connection(H3Index start, H3Index end, double walking_speed) {
   if (start == end) return;
   int64_t distance_cells;
@@ -398,6 +457,170 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
   return 0;
 }
 
+void Isochrone_generator::add_more_stops() {
+  std::vector<Stop> mxb1, mxb1xp, mxb2, mxb2xp, mxb3, mxb3xp1, mxb3xp2, mxb4, mxb1aifa, mxcb1;
+  mxb1.emplace_back("Ciudad Azteca", 19.53439836977682, -99.02729433667595);
+  mxb1.emplace_back("Quinto Sol", 19.53924959962029, -99.02518429559673);
+  mxb1.emplace_back("Josefa Ortíz", 19.5462272854162, -99.02211335535597);
+  mxb1.emplace_back("Industrial", 19.55015230075902, -99.02051893763851);
+  mxb1.emplace_back("UNITEC", 19.55378623821462, -99.0194231139581);
+  mxb1.emplace_back("Alfredo Torres", 19.55816831329086, -99.01728201710492);
+  mxb1.emplace_back("Zodiaco", 19.56322833706457, -99.01514464210868);
+  mxb1.emplace_back("Adolfo López Mateos", 19.5672998728123, -99.01513557582894);
+  mxb1.emplace_back("Vocacional 3", 19.569370586861, -99.01703869096195);
+  mxb1.emplace_back("Valle de Ecatepec", 19.57300898347939, -99.02048433220071);
+  mxb1.emplace_back("Las Américas L1", 19.58058755499126, -99.02404114210755);
+  mxb1.emplace_back("Primero de Mayo", 19.58754925094757, -99.02441910053915);
+  mxb1.emplace_back("Hospital", 19.59450828399905, -99.01990951722591);
+  mxb1.emplace_back("Aquiles Serdán", 19.59851902831778, -99.0178880654198);
+  mxb1.emplace_back("Jardines de Morelos", 19.60032312748448, -99.01599789882803);
+  mxb1.emplace_back("Palomas", 19.60732425456538, -99.01148972018244);
+  mxb1.emplace_back("19 de Septiembre", 19.61080505035884, -99.00909868729524);
+  mxb1.emplace_back("Central de Abastos", 19.61696824341515, -99.00856280290067);
+  mxb1.emplace_back("Insurgentes", 19.62575892998876, -99.00318088554235);
+  mxb1.emplace_back("Hidalgo", 19.6334352456974, -99.00160047332518);
+  mxb1.emplace_back("Cuauhtémoc Sur", 19.6381742183197, -99.00172772075214);
+  mxb1.emplace_back("Cuauhtémoc Norte", 19.64626385345605, -99.00408373206334);
+  mxb1.emplace_back("Esmeralda", 19.65218340008285, -99.00443591515533);
+  mxb1.emplace_back("Ojo de Agua", 19.66138354043803, -99.00083737876062);
+  add_transit_line("Mexibús", "MXB1", mxb1, 54*60, 10*60);
+  
+  mxb1xp.emplace_back("Ciudad Azteca", 19.53439836977682, -99.02729433667595);
+  mxb1xp.emplace_back("UNITEC", 19.55378623821462, -99.0194231139581);
+  mxb1xp.emplace_back("Vocacional 3", 19.569370586861, -99.01703869096195);
+  mxb1xp.emplace_back("Primero de Mayo", 19.58754925094757, -99.02441910053915);
+  mxb1xp.emplace_back("Hospital", 19.59450828399905, -99.01990951722591);
+  mxb1xp.emplace_back("Jardines de Morelos", 19.60032312748448, -99.01599789882803);
+  mxb1xp.emplace_back("Central de Abastos", 19.61696824341515, -99.00856280290067);
+  mxb1xp.emplace_back("Cuauhtémoc Norte", 19.64626385345605, -99.00408373206334);
+  mxb1xp.emplace_back("Ojo de Agua", 19.66138354043803, -99.00083737876062);
+  add_transit_line("Mexibús", "MXB1XP", mxb1xp, 26*60, 20*60);
+
+  mxb2.emplace_back("Las Américas L2", 19.58971950628505, -99.02343120858322);
+  mxb2.emplace_back("1o de Mayo L2", 19.59340855236048, -99.02657138050004);
+  mxb2.emplace_back("San Martín", 19.59574339260342, -99.0288392261936);
+  mxb2.emplace_back("Puente de Fierro", 19.60077346514725, -99.03304489436023);
+  mxb2.emplace_back("Casa de Morelos", 19.59935669742654, -99.03191482016831);
+  mxb2.emplace_back("UPE", 19.60197359838236, -99.04149266291061);
+  mxb2.emplace_back("San Cristobal", 19.60460709854985, -99.04529975164978);
+  mxb2.emplace_back("Agricultura", 19.60708012695657, -99.04926706900952);
+  mxb2.emplace_back("ISSEMYM", 19.60690729343817, -99.05130415999449);
+  mxb2.emplace_back("El Carmen", 19.60906585295757, -99.054385079996);
+  mxb2.emplace_back("Ecatepec", 19.61121871875001, -99.05755303594596);
+  mxb2.emplace_back("DIF", 19.61448132731259, -99.05987881778697);
+  mxb2.emplace_back("Guadalupe Victoria", 19.61914939374332, -99.06612441598996);
+  mxb2.emplace_back("Venustiano Carranza", 19.62030288546155, -99.0677673080465);
+  mxb2.emplace_back("FOVISSSTE", 19.62165626508903, -99.07008157116425);
+  mxb2.emplace_back("San Carlos", 19.62507103931515, -99.0752641409198);
+  mxb2.emplace_back("La Laguna", 19.627014165393, -99.08025535039479);
+  mxb2.emplace_back("Parque Residencial", 19.63016610033181, -99.08482610748759);
+  mxb2.emplace_back("Eje 8", 19.6323809023466, -99.09185506301377);
+  mxb2.emplace_back("1ra. de Villa", 19.6331227100971, -99.09369383661803);
+  mxb2.emplace_back("Las Flores Zacuatitla", 19.63415725768794, -99.09660459690936);
+  mxb2.emplace_back("San Francisco", 19.63620633116745, -99.10202815386492);
+  mxb2.emplace_back("Héroes Canosas", 19.63590856843284, -99.10561565881612);
+  mxb2.emplace_back("Coacalco Tultepec", 19.63510546046314, -99.11276325762481);
+  mxb2.emplace_back("Ex-hacienda San Felipe", 19.63386415837256, -99.1156403377791);
+  mxb2.emplace_back("Bosques del Valle", 19.63319379452796, -99.11726181380475);
+  mxb2.emplace_back("Coacalco Berriozábal", 19.63084969239678, -99.12447587798128);
+  mxb2.emplace_back("Santa María", 19.63072148633727, -99.12722826849203);
+  mxb2.emplace_back("Villas de San José", 19.62987359831654, -99.13040249323046);
+  mxb2.emplace_back("Mariscala Real del Bosque", 19.62846231627136, -99.13571323267593);
+  mxb2.emplace_back("Fuentes del Valle", 19.62820450529153, -99.13959079483186);
+  mxb2.emplace_back("De la Cruz San Mateo", 19.62587956019357, -99.14872841273146);
+  mxb2.emplace_back("Cartagena", 19.62504686998676, -99.15249877421446);
+  mxb2.emplace_back("Bello Horizonte", 19.62328845444674, -99.15900262607263);
+  mxb2.emplace_back("Bandera Tultitlán", 19.6222629022576, -99.16294571421722);
+  mxb2.emplace_back("Buenavista", 19.62096099470737, -99.16728414039603);
+  mxb2.emplace_back("COCEM", 19.62005274899639, -99.17061115813237);
+  mxb2.emplace_back("Recursos Hidráulicos", 19.61749204344672, -99.1780422328082);
+  mxb2.emplace_back("Chilpan", 19.61535264865363, -99.17971943441471);
+  mxb2.emplace_back("Ciudad Labor", 19.60917872788961, -99.18081689876557);
+  mxb2.emplace_back("Vidriera", 19.606592174932, -99.18164084074678);
+  mxb2.emplace_back("Lechería", 19.59862658661841, -99.18311624034162);
+  mxb2.emplace_back("La Quebrada", 19.59212188408037, -99.18783419362067);
+  add_transit_line("Mexibús", "MXB2", mxb2, 81*60, 15*60);
+
+  mxb2xp.emplace_back("Ecatepec", 19.61121871875001, -99.05755303594596);
+  mxb2xp.emplace_back("Ecatepec", 19.61121871875001, -99.05755303594596);
+  mxb2xp.emplace_back("DIF", 19.61448132731259, -99.05987881778697);
+  mxb2xp.emplace_back("Guadalupe Victoria", 19.61914939374332, -99.06612441598996);
+  mxb2xp.emplace_back("FOVISSSTE", 19.62165626508903, -99.07008157116425);
+  mxb2xp.emplace_back("La Laguna", 19.627014165393, -99.08025535039479);
+  mxb2xp.emplace_back("Parque Residencial", 19.63016610033181, -99.08482610748759);
+  mxb2xp.emplace_back("Eje 8", 19.6323809023466, -99.09185506301377);
+  mxb2xp.emplace_back("1ra. de Villa", 19.6331227100971, -99.09369383661803);
+  mxb2xp.emplace_back("Las Flores Zacuatitla", 19.63415725768794, -99.09660459690936);
+  mxb2xp.emplace_back("San Francisco", 19.63620633116745, -99.10202815386492);
+  mxb2xp.emplace_back("Héroes Canosas", 19.63590856843284, -99.10561565881612);
+  mxb2xp.emplace_back("Coacalco Tultepec", 19.63510546046314, -99.11276325762481);
+  mxb2xp.emplace_back("Coacalco Berriozábal", 19.63084969239678, -99.12447587798128);
+  mxb2xp.emplace_back("Villas de San José", 19.62987359831654, -99.13040249323046);
+  mxb2xp.emplace_back("Mariscala Real del Bosque", 19.62846231627136, -99.13571323267593);
+  mxb2xp.emplace_back("Fuentes del Valle", 19.62820450529153, -99.13959079483186);
+  mxb2xp.emplace_back("Cartagena", 19.62504686998676, -99.15249877421446);
+  mxb2xp.emplace_back("Bandera Tultitlán", 19.6222629022576, -99.16294571421722);
+  mxb2xp.emplace_back("Chilpan", 19.61535264865363, -99.17971943441471);
+  mxb2xp.emplace_back("Lechería Exprés", 19.59864244907957, -99.18447045670338);
+  add_transit_line("Mexibús", "MXB2XP", mxb2, 45*60, 15*60);
+  
+  mxb3.emplace_back("Pantitlán", 19.41622562060524, -99.0717413205666);
+  mxb3.emplace_back("Calle 6", 19.4209852181542, -98.05884829820698);
+  mxb3.emplace_back("El Barquito", 19.42012625450993, -99.04840132630977);
+  mxb3.emplace_back("Maravillas", 19.41964571307251, -99.04413194343167);
+  mxb3.emplace_back("Vicente Riva Palacio", 19.41821532751105, -99.04121235572096);
+  mxb3.emplace_back("Virgencitas", 19.41519634388662, -99.03329607034728);
+  mxb3.emplace_back("Nezahualcóyotl", 19.41415389170354, -99.03210025419071);
+  mxb3.emplace_back("Lago de Chapala", 19.41201069713294, -99.02704994951381);
+  mxb3.emplace_back("Adolfo López Mateos", 19.40919346592051, -99.02245280813919);
+  mxb3.emplace_back("Palacio Municipal", 19.40727260344348, -99.01827037292249);
+  mxb3.emplace_back("Sor Juana Inés de la Cruz", 19.40583943574982, -99.0138569239773);
+  mxb3.emplace_back("El Castillito", 19.40472039095053, -99.01133966497878);
+  mxb3.emplace_back("General Vicente Villada", 19.40270081890758, -99.00836209386476);
+  mxb3.emplace_back("Rayito de Sol", 19.40649921294924, -99.00384764924844);
+  mxb3.emplace_back("Las Mañanitas", 19.41054472777601, -99.00192616482502);
+  mxb3.emplace_back("Rancho Grande", 19.41506495558606, -98.9998275465898);
+  mxb3.emplace_back("Bordo de Xochiaca", 19.41554328164503, -98.99509364891462);
+  mxb3.emplace_back("Las Torres", 19.41422081931805, -98.98900128084165);
+  mxb3.emplace_back("Guerrero Chimalli", 19.41295216119731, -98.98258629638819);
+  mxb3.emplace_back("Las Flores", 19.41452170344307, -98.97850788980891);
+  mxb3.emplace_back("Canteros", 19.41851136564861, -98.97638248261553);
+  mxb3.emplace_back("La Presa", 19.42212647188211, -98.97241708078207);
+  mxb3.emplace_back("Embarcadero", 19.42532624894452, -98.96704680094442);
+  mxb3.emplace_back("Santa Elena", 19.42854718448196, -98.96267147008716);
+  mxb3.emplace_back("Ignacio Manuel Altamirano", 19.43139553230715, -98.95710027073898);
+  mxb3.emplace_back("San Pablo", 19.43204785629158, -98.95155154640979);
+  mxb3.emplace_back("Los Patos", 19.43128237723586, -98.94670730369472);
+  mxb3.emplace_back("Refugio", 19.4302942317651, -98.94085234466959);
+  mxb3.emplace_back("Chimalhuacán", 19.42381404525305, -98.93576830513244);
+  add_transit_line("Mexibús", "MXB3", mxb3, 59*60, 10*60);
+  
+  mxb3xp1.emplace_back("Pantitlán", 19.41622562060524, -99.0717413205666);
+  mxb3xp1.emplace_back("El Barquito", 19.42012625450993, -99.04840132630977);
+  mxb3xp1.emplace_back("Vicente Riva Palacio", 19.41821532751105, -99.04121235572096);
+  mxb3xp1.emplace_back("Nezahualcóyotl", 19.41415389170354, -99.03210025419071);
+  mxb3xp1.emplace_back("Adolfo López Mateos", 19.40919346592051, -99.02245280813919);
+  mxb3xp1.emplace_back("Palacio Municipal", 19.40727260344348, -99.01827037292249);
+  mxb3xp1.emplace_back("General Vicente Villada", 19.40270081890758, -99.00836209386476);
+  mxb3xp1.emplace_back("Rayito de Sol", 19.40649921294924, -99.00384764924844);
+  mxb3xp1.emplace_back("Las Torres", 19.41422081931805, -98.98900128084165);
+  mxb3xp1.emplace_back("Las Flores", 19.41452170344307, -98.97850788980891);
+  mxb3xp1.emplace_back("La Presa", 19.42212647188211, -98.97241708078207);
+  mxb3xp1.emplace_back("Los Patos", 19.43128237723586, -98.94670730369472);
+  mxb3xp1.emplace_back("Acuitlapilco", 19.42953228900163, -98.93868332308342);
+  add_transit_line("Mexibús", "MXB3XP1", mxb3xp1, 33*60, 15*60);
+  
+  mxb3xp2.emplace_back("Pantitlán", 19.41622562060524, -99.0717413205666);
+  mxb3xp2.emplace_back("Vicente Riva Palacio", 19.41821532751105, -99.04121235572096);
+  mxb3xp2.emplace_back("Adolfo López Mateos", 19.40919346592051, -99.02245280813919);
+  mxb3xp2.emplace_back("General Vicente Villada", 19.40270081890758, -99.00836209386476);
+  mxb3xp2.emplace_back("Las Torres", 19.41422081931805, -98.98900128084165);
+  mxb3xp2.emplace_back("La Presa", 19.42212647188211, -98.97241708078207);
+  mxb3xp2.emplace_back("Los Patos", 19.43128237723586, -98.94670730369472);
+  mxb3xp2.emplace_back("Chimalhuacán", 19.42381404525305, -98.93576830513244);
+  add_transit_line("Mexibús", "MXB3XP2", mxb3xp2, 24*60, 15*60);
+}
+
 void Isochrone_generator::create_hexes_for_stops(int hex_buffer_size) {
   std::cout << "Generating hexes within buffer of stops..." << std::endl;
   clock_t start_time = clock();
@@ -642,19 +865,20 @@ void Isochrone_generator::add_walking_connections(std::string &osm, double walki
       maxGridDiskSize(1, &max_hexes);
       H3Index *hexes_within_distance = new H3Index[max_hexes];
       gridDisk(hex.first, 1, hexes_within_distance);
-      bool border_hex = false;
+      int connected_neighbours = 0;
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes_within_distance[i] != 0 &&
             hexes.count(hexes_within_distance[i])) {
+          bool connected_neighbour = false;
           for (auto const &connection: hexes[hexes_within_distance[i]].connections) {
             if (connection.how == "walk") {
-              border_hex = true;
+              connected_neighbour = true;
               break;
             }
-          }
+          } if (connected_neighbour) ++connected_neighbours;
         }
       } delete []hexes_within_distance;
-      if (border_hex) hexes_to_connect.push_back(hex.first);
+      if (connected_neighbours >= 5) hexes_to_connect.push_back(hex.first);
     }
   } for (auto const &hex: hexes_to_connect) {
     int64_t max_hexes;

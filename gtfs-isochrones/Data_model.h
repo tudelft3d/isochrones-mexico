@@ -18,6 +18,12 @@ struct Stop {
   std::string id, name, zone;
   double lat, lon;
   bool wheelchair_boarding;
+  Stop() {}
+  Stop(std::string name, double lat, double lon) {
+    this->name = name;
+    this->lat = lat;
+    this->lon = lon;
+  }
 };
 
 struct TripFrequency {
