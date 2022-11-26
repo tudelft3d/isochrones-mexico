@@ -628,7 +628,7 @@ void Isochrone_generator::add_walking_connections(std::string &osm, double walki
     }
   }
   
-  // One-hex tolerance to allow for hexes near roads + fewer holes
+  // Remove thin holes
   std::vector<H3Index> hexes_to_connect;
   for (auto &hex: hexes) {
     bool has_walking_connection = false;
