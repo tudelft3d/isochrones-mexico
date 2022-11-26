@@ -204,7 +204,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 7) {
       std::cout << "Problems parsing routes" << std::endl;
@@ -226,7 +226,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 5) {
       std::cout << "Problems parsing agencies" << std::endl;
@@ -246,7 +246,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 10) {
       std::cout << "Problems parsing services" << std::endl;
@@ -279,7 +279,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 7) {
       std::cout << "Problems parsing trips" << std::endl;
@@ -302,7 +302,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 5) {
       std::cout << "Problems parsing frequencies" << std::endl;
@@ -349,7 +349,7 @@ int Isochrone_generator::load_gtfs_data(std::string &gtfs_folder) {
     std::vector<std::string> line_elements;
     std::string element;
     while (getline(line_stream, element, ',')) {
-      while (element.back() == '\r' || element.back() == '\n') element.pop_back();
+      while (element.back() == '\r' || element.back() == '\n' || element.back() == ' ') element.pop_back();
       line_elements.push_back(element);
     } if (line_elements.size() != 6) {
       std::cout << "Problems parsing stop times" << std::endl;
@@ -497,8 +497,11 @@ void Isochrone_generator::create_mexico_city_starting_points() {
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "MB") continue;
-    if (routes[trip.second.route].short_name == "SE L12") continue;
+    if (routes[trip.second.route].short_name == "SE L12") continue; // servicio emergente L12
     for (auto const &stop: trip.second.stops) {
+      if (stops[stop.second.stop].name == "Metro Coyuya") continue; // skip some bad names
+      if (stops[stop.second.stop].name == "Glorieta Insurgentes") continue;
+      if (stops[stop.second.stop].name == "Glorieta de Colón") continue;
       LatLng ll;
       H3Index hex;
       ll.lat = degsToRads(stops[stop.second.stop].lat);
@@ -512,7 +515,7 @@ void Isochrone_generator::create_mexico_city_starting_points() {
       for (int i = 0; i < max_hexes; ++i) {
         if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
       } delete []hexes_within_distance;
-      if (!match_found && hexes[hex].stop_name.empty() && !stops[stop.second.stop].name.starts_with("Metro")) {
+      if (!match_found && hexes[hex].stop_name.empty()) {
         hexes[hex].transport_type = "Metrobús";
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
@@ -605,7 +608,7 @@ void Isochrone_generator::add_walking_connections(std::string &osm, double walki
   std::cout << "Adding walking connections..." << std::endl;
   clock_t start_time = clock();
   
-  // Use OSM street network
+  // Walking connections with OSM street network
   osmium::io::Reader reader{osm.c_str(), osmium::osm_entity_bits::node | osmium::osm_entity_bits::way};
   
   using index_type = osmium::index::map::FlexMem<osmium::unsigned_object_id_type, osmium::Location>;
@@ -625,27 +628,61 @@ void Isochrone_generator::add_walking_connections(std::string &osm, double walki
     }
   }
   
-  // Walking connections between all adjacent hexes
-//  for (auto &hex: hexes) {
-//    int64_t max_hexes;
-//    maxGridDiskSize(1, &max_hexes);
-//    H3Index *hexes_within_distance = new H3Index[max_hexes];
-//    gridDisk(hex.first, 1, hexes_within_distance);
-//    LatLng from_ll;
-//    cellToLatLng(hex.first, &from_ll);
-//    for (int i = 0; i < max_hexes; ++i) {
-//      if (hexes_within_distance[i] != 0 && hexes.count(hexes_within_distance[i])) {
-//        LatLng to_ll;
-//        cellToLatLng(hexes_within_distance[i], &to_ll);
-//        double distance = greatCircleDistanceKm(&from_ll, &to_ll);
-//        hex.second.connections.emplace_back();
-//        hex.second.connections.back().to = hexes_within_distance[i];
-//        hex.second.connections.back().travel_time = distance/walking_speed;
-//        hex.second.connections.back().wait_time = 0.0;
-//        hex.second.connections.back().how = "walk";
-//      }
-//    } delete []hexes_within_distance;
-//  }
+  // One-hex tolerance to allow for hexes near roads + fewer holes
+  std::vector<H3Index> hexes_to_connect;
+  for (auto &hex: hexes) {
+    bool has_walking_connection = false;
+    for (auto const &connection: hex.second.connections) {
+      if (connection.how == "walk") {
+        has_walking_connection = true;
+        break;
+      }
+    } if (!has_walking_connection) {
+      int64_t max_hexes;
+      maxGridDiskSize(1, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex.first, 1, hexes_within_distance);
+      bool border_hex = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes_within_distance[i] != 0 &&
+            hexes.count(hexes_within_distance[i])) {
+          for (auto const &connection: hexes[hexes_within_distance[i]].connections) {
+            if (connection.how == "walk") {
+              border_hex = true;
+              break;
+            }
+          }
+        }
+      } delete []hexes_within_distance;
+      if (border_hex) hexes_to_connect.push_back(hex.first);
+    }
+  } for (auto const &hex: hexes_to_connect) {
+    int64_t max_hexes;
+    maxGridDiskSize(1, &max_hexes);
+    H3Index *hexes_within_distance = new H3Index[max_hexes];
+    gridDisk(hex, 1, hexes_within_distance);
+    LatLng from_ll;
+    cellToLatLng(hex, &from_ll);
+    for (int i = 0; i < max_hexes; ++i) {
+      if (hexes_within_distance[i] != 0 && hexes.count(hexes_within_distance[i])) {
+        LatLng to_ll;
+        cellToLatLng(hexes_within_distance[i], &to_ll);
+        double distance = greatCircleDistanceKm(&from_ll, &to_ll);
+        
+        hexes[hex].connections.emplace_back();
+        hexes[hex].connections.back().to = hexes_within_distance[i];
+        hexes[hex].connections.back().travel_time = distance/walking_speed;
+        hexes[hex].connections.back().wait_time = 0.0;
+        hexes[hex].connections.back().how = "walk";
+        
+        hexes[hexes_within_distance[i]].connections.emplace_back();
+        hexes[hexes_within_distance[i]].connections.back().to = hex;
+        hexes[hexes_within_distance[i]].connections.back().travel_time = distance/walking_speed;
+        hexes[hexes_within_distance[i]].connections.back().wait_time = 0.0;
+        hexes[hexes_within_distance[i]].connections.back().how = "walk";
+      }
+    } delete []hexes_within_distance;
+  }
   
   std::cout << "\tdone in ";
   print_timer(start_time);
