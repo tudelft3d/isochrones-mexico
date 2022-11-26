@@ -8,7 +8,7 @@ The map is built with [MapLibre](https://maplibre.org/) using vector tiles and t
 
 The C++ code for this is in the gtfs-isochrones folder.
 
-The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/mexico-city/data/data.zip), are computed based on a network on top of an [H3](https://h3geo.org) hexagon grid with edges derived from GTFS trips (worst case wait time + travel time) and additional edges between adjacent hexagons (based on walking speed). The map uses the trips available based on a mid-day weekday schedule (Wednesday at 12:35).
+The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/mexico-city/data/data.zip), are computed based on a network on top of an [H3](https://h3geo.org) hexagon grid. The network has edges derived from GTFS trips (worst case wait time + travel time) and edges between adjacent hexagons that are connected by roads in OSM (based on walking speed). The map uses the trips available based on a mid-day weekday schedule (Wednesday at 12:35).
 
 ## How to build the web map?
 
@@ -19,16 +19,15 @@ The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/
 
 - [H3](https://h3geo.org)
 - [GDAL](https://gdal.org/)
+- [Osmium](https://osmcode.org/libosmium/)
 - Niels Lohmann's [JSON for Modern C++](https://github.com/nlohmann/json)
 
-## Known limitations
+## Data issues and limitations
 
-- We assume that it is possible to walk at the same speed between any two adjacent H3 hexagons (even when there's no direct road connection, the route is not straight or the terrain isn't flat)
-- Issues in the Mexico City GTFS (eg Metro lines 1 and 12 operating normally, some inconsistent station locations)
-- Limited coverage of the Mexico City GTFS (eg only a few private operators, limited coverage outside of Mexico City proper)
+- OSM road network (eg some roads in OSM aren't accessible to the public or to pedestrians)
+- Mexico City GTFS (eg Metro lines 1 and 12 marked as operating normally, inconsistent station locations, issues with stop names, only a few private operators, very limited coverage outside of Mexico City proper)
 
 ## Ideas for improvement
 
-- Use OSM road network for walking routes
 - Polygon simplification
 - More starting points
