@@ -19,12 +19,12 @@ int main(int argc, const char * argv[]) {
   if (error) return error;
   
   // Manually added data
-  isochrone_generator.add_more_stops();
+//  isochrone_generator.add_more_stops();
   
   // Generate hexes for region (within buffer of stops)
   isochrone_generator.create_hexes_for_stops(hex_buffer_size);
   
-  // Define starting points (hardcoded with interesting stope for Mexico City)
+  // Define starting points (hardcoded with interesting stops for Mexico City)
   isochrone_generator.create_mexico_city_starting_points();
   
   // Write starting points
