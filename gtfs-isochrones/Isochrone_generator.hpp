@@ -66,7 +66,9 @@ class Isochrone_generator {
   std::unordered_map<H3Index, Hex> hexes;
   
   void print_timer(clock_t start_time);
+  std::vector<std::string> split_csv_line(const std::string &line);
   std::map<std::string, std::size_t> read_header(std::string &header_line);
+  bool require_columns(const std::map<std::string, std::size_t> &header, const std::vector<std::string> &required, const std::string &file_name);
   void add_transit_line(const char *system, const char *line, std::vector<Stop> &stops, double total_time, double frequency);
   void add_walking_connection(H3Index start, H3Index end, double walking_speed);
   std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(H3Index start);

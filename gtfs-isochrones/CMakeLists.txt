@@ -25,7 +25,10 @@ find_package( GDAL 3.0 REQUIRED )
 # H3
 find_package( H3 CONFIG REQUIRED )
 
-include_directories( ${GDAL_INCLUDE_DIR} )
+# zlib (needed by libosmium for PBF input)
+find_package( ZLIB REQUIRED )
+
+include_directories( ${GDAL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIRS} )
 
 # Creating entries for target: isochrones
 # ############################
@@ -35,4 +38,4 @@ add_executable( isochrones Isochrone_generator.cpp main.cpp )
 set_property(TARGET isochrones PROPERTY CXX_STANDARD 20)
 
 # Link
-target_link_libraries( isochrones ${GDAL_LIBRARY} h3::h3 )
+target_link_libraries( isochrones ${GDAL_LIBRARY} h3::h3 ${ZLIB_LIBRARIES} )

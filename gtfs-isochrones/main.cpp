@@ -3,7 +3,7 @@
 int main(int argc, const char * argv[]) {
   
   std::string gtfs_folder = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/gtfs";
-  std::string osm = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/osm/mexico-latest.osm.pbf";
+  std::string osm = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/osm/mexico-260423.osm.pbf";
   std::string starting_points_file = "/Users/ken/Downloads/starting_points.geojson";
   std::string isochrones_folder = "/Users/ken/Downloads/isochrones";
   const int h3_resolution = 10;
