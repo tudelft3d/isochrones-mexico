@@ -1,6 +1,7 @@
 #include "Isochrone_generator.hpp"
 
 #include <limits>
+#include <cmath>
 
 void Isochrone_generator::print_timer(clock_t start_time) {
   clock_t stop_time = clock();
@@ -188,68 +189,51 @@ nlohmann::json Isochrone_generator::create_isochrones_from_routes(std::unordered
   isochrones["type"] = "FeatureCollection";
   isochrones["properties"] = nlohmann::json::object();
   isochrones["features"] = nlohmann::json::array();
+  auto round_coord = [](double degrees) -> double {
+    return std::round(degrees * 1e6) / 1e6;
+  };
   for (auto const &isochrone_time: isochrone_times) {
     std::vector<H3Index> smaller_hexes;
     for (auto const &hex: all_times) {
       if (hex.second < isochrone_time) smaller_hexes.push_back(hex.first);
     } if (smaller_hexes.empty()) continue;
+    
+    LinkedGeoPolygon linked_polygon = {};
+    H3Error error = cellsToLinkedMultiPolygon(smaller_hexes.data(), static_cast<int>(smaller_hexes.size()), &linked_polygon);
+    if (error != E_SUCCESS) {
+      std::cout << "\terror: cellsToLinkedMultiPolygon failed: " << describeH3Error(error) << std::endl;
+      continue;
+    }
+    
     isochrones["features"].push_back(nlohmann::json::object());
     isochrones["features"].back()["type"] = "Feature";
     isochrones["features"].back()["geometry"] = nlohmann::json::object();
     isochrones["features"].back()["properties"] = nlohmann::json::object();
     isochrones["features"].back()["properties"]["duration"] = isochrone_time;
     
-    OGRMultiPolygon multipolygon;
-    for (auto const &hex: smaller_hexes) {
-      CellBoundary cb;
-      cellToBoundary(hex, &cb);
-      OGRPolygon polygon;
-      OGRLinearRing ring;
-      for (int vertex = 0; vertex < cb.numVerts; ++vertex) {
-        ring.addPoint(radsToDegs(cb.verts[vertex].lng), radsToDegs(cb.verts[vertex].lat));
-      } ring.addPoint(radsToDegs(cb.verts[0].lng), radsToDegs(cb.verts[0].lat));
-      polygon.addRing(&ring);
-      multipolygon.addGeometry(&polygon);
-    } OGRGeometry *hex_union = multipolygon.UnionCascaded();
-    if (hex_union->getGeometryType() == wkbMultiPolygon) {
-      OGRMultiPolygon *multipolygon = static_cast<OGRMultiPolygon *>(hex_union);
-      isochrones["features"].back()["geometry"]["type"] = "MultiPolygon";
-      isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
-      for (int current_polygon = 0; current_polygon < multipolygon->getNumGeometries(); ++current_polygon) {
-        OGRPolygon *polygon = multipolygon->getGeometryRef(current_polygon);
-        isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
-        isochrones["features"].back()["geometry"]["coordinates"].back().push_back(nlohmann::json::array());
-        for (int current_point = 0; current_point < polygon->getExteriorRing()->getNumPoints(); ++current_point) {
-          isochrones["features"].back()["geometry"]["coordinates"].back().back().push_back({polygon->getExteriorRing()->getX(current_point),
-                                                                                            polygon->getExteriorRing()->getY(current_point)});
-        } for (int current_ring = 0; current_ring < polygon->getNumInteriorRings(); ++current_ring) {
-          OGRLinearRing *ring = polygon->getInteriorRing(current_ring);
-          isochrones["features"].back()["geometry"]["coordinates"].back().push_back(nlohmann::json::array());
-          for (int current_point = 0; current_point < ring->getNumPoints(); ++current_point) {
-            isochrones["features"].back()["geometry"]["coordinates"].back().back().push_back({ring->getX(current_point),
-                                                                                              ring->getY(current_point)});
-          }
-        }
-      }
-    } else if (hex_union->getGeometryType() == wkbPolygon) {
-      OGRPolygon *polygon = static_cast<OGRPolygon *>(hex_union);
-      isochrones["features"].back()["geometry"]["type"] = "Polygon";
-      isochrones["features"].back()["geometry"]["coordinates"] = nlohmann::json::array();
-      isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
-      for (int current_point = 0; current_point < polygon->getExteriorRing()->getNumPoints(); ++current_point) {
-        isochrones["features"].back()["geometry"]["coordinates"].back().push_back({polygon->getExteriorRing()->getX(current_point),
-                                                                                   polygon->getExteriorRing()->getY(current_point)});
-      } for (int current_ring = 0; current_ring < polygon->getNumInteriorRings(); ++current_ring) {
-        OGRLinearRing *ring = polygon->getInteriorRing(current_ring);
-        isochrones["features"].back()["geometry"]["coordinates"].push_back(nlohmann::json::array());
-        for (int current_point = 0; current_point < ring->getNumPoints(); ++current_point) {
-          isochrones["features"].back()["geometry"]["coordinates"].back().push_back({ring->getX(current_point),
-                                                                                     ring->getY(current_point)});
-        }
-      }
-    } else {
-      std::cout << "\terror: union produced unknown output type" << std::endl;
+    nlohmann::json polygons = nlohmann::json::array();
+    for (LinkedGeoPolygon *polygon = &linked_polygon; polygon != nullptr; polygon = polygon->next) {
+      nlohmann::json polygon_coords = nlohmann::json::array();
+      for (LinkedGeoLoop *loop = polygon->first; loop != nullptr; loop = loop->next) {
+        nlohmann::json ring = nlohmann::json::array();
+        LinkedLatLng *coord = loop->first;
+        if (coord == nullptr) continue;
+        LinkedLatLng *first_coord = coord;
+        while (coord != nullptr) {
+          ring.push_back({round_coord(radsToDegs(coord->vertex.lng)), round_coord(radsToDegs(coord->vertex.lat))});
+          coord = coord->next;
+        } ring.push_back({round_coord(radsToDegs(first_coord->vertex.lng)), round_coord(radsToDegs(first_coord->vertex.lat))});
+        polygon_coords.push_back(ring);
+      } polygons.push_back(polygon_coords);
     }
+    if (polygons.size() == 1) {
+      isochrones["features"].back()["geometry"]["type"] = "Polygon";
+      isochrones["features"].back()["geometry"]["coordinates"] = polygons[0];
+    } else {
+      isochrones["features"].back()["geometry"]["type"] = "MultiPolygon";
+      isochrones["features"].back()["geometry"]["coordinates"] = polygons;
+    }
+    destroyLinkedMultiPolygon(&linked_polygon);
   }
   
   return isochrones;

@@ -2,10 +2,10 @@
 
 int main(int argc, const char * argv[]) {
   
-  std::string gtfs_folder = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/gtfs";
-  std::string osm = "/Users/ken/Library/Mobile Documents/com~apple~CloudDocs/Teaching/data/osm/mexico-260423.osm.pbf";
-  std::string starting_points_file = "/Users/ken/Downloads/starting_points.geojson";
-  std::string isochrones_folder = "/Users/ken/Downloads/isochrones";
+  std::string gtfs_folder = "data/gtfs";
+  std::string osm = "data/osm/mexico-260423.osm.pbf";
+  std::string starting_points_file = "data/starting_points.geojson";
+  std::string isochrones_folder = "data/isochrones";
   const int h3_resolution = 10;
   const int hex_buffer_size = 50; // buffer around stops to cover entire region
   const double walking_speed = 5.0; // km/h
