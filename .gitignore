@@ -6,6 +6,7 @@ example
 package-lock.json
 build
 *.entitlements
+data/
 
 # Logs
 logs
