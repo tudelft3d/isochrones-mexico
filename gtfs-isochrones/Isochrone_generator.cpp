@@ -494,11 +494,9 @@ void Isochrone_generator::create_mexico_city_starting_points() {
     }
   } for (auto const &trip: trips) {
     if (routes[trip.second.route].agency != "MB") continue;
-    if (routes[trip.second.route].short_name == "SE L12") continue; // servicio emergente L12
     for (auto const &stop: trip.second.stops) {
       if (stops[stop.second.stop].name == "Metro Coyuya") continue; // skip some bad names
       if (stops[stop.second.stop].name == "Glorieta Insurgentes") continue;
-      if (stops[stop.second.stop].name == "Glorieta de Colón") continue;
       LatLng ll;
       H3Index hex;
       ll.lat = degsToRads(stops[stop.second.stop].lat);
