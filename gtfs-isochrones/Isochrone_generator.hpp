@@ -71,7 +71,7 @@ class Isochrone_generator {
   bool require_columns(const std::map<std::string, std::size_t> &header, const std::vector<std::string> &required, const std::string &file_name);
   void add_transit_line(const char *system, const char *line, std::vector<Stop> &stops, double total_time, double frequency);
   void add_walking_connection(H3Index start, H3Index end, double walking_speed);
-  std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(H3Index start);
+  std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> compute_routes_from_hex(H3Index start, double max_time);
   nlohmann::json create_isochrones_from_routes(std::unordered_map<H3Index, double> &all_times, std::vector<double> &isochrone_times);
 public:
   Isochrone_generator(int h3_resolution);

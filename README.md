@@ -15,10 +15,18 @@ The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/
 - `npm install`
 - `npm start`
 
+The map serves from `example/dev-bundle/` on port 9080.
+
+## How to regenerate the isochrone data?
+
+- Build the generator with CMake from `gtfs-isochrones/` (or the Xcode project), then run `gtfs-isochrones/build/isochrones` **from the repo root**.
+- Inputs are read from `data/gtfs` and `data/osm/`; outputs are written to `data/starting_points.geojson` and `data/isochrones/`.
+- Copy those outputs into `example/dev-bundle/data/` so the map can fetch them.
+
 ## Required libraries
 
 - [H3](https://h3geo.org)
-- [GDAL](https://gdal.org/)
+- [GDAL](https://gdal.org/) (only used for the debug gpkg writers)
 - [Osmium](https://osmcode.org/libosmium/)
 - Niels Lohmann's [JSON for Modern C++](https://github.com/nlohmann/json)
 
@@ -29,5 +37,6 @@ The isochrones, which you can download [here](https://3d.bk.tudelft.nl/ken/maps/
 
 ## Ideas for improvement
 
-- Polygon simplification
-- More starting points
+- Douglas-Peucker simplification of the isochrone boundaries (coordinates are already rounded to 6 decimals)
+- Parallelize the per-station isochrone computation
+- More starting points (current set includes the Metro, Metrobús, Tren Ligero, Suburbano, Cablebús, Trolebús and Interurbano systems)

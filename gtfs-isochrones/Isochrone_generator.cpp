@@ -1,5 +1,6 @@
 #include "Isochrone_generator.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <cmath>
 
@@ -150,7 +151,7 @@ void Isochrone_generator::add_walking_connection(H3Index start, H3Index end, dou
   }
 }
 
-std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(H3Index start) {
+std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Connection>> Isochrone_generator::compute_routes_from_hex(H3Index start, double max_time) {
   std::unordered_map<H3Index, double> time;
   std::unordered_map<H3Index, Connection> previous;
   std::set<std::pair<double, H3Index>> queue;
@@ -162,6 +163,7 @@ std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Conne
     auto ret = queue.insert(std::make_pair(time[hex.first], hex.first));
     queue_positions[hex.first] = ret.first;
   } while (!queue.empty()) {
+    if (queue.begin()->first >= max_time) break;
     H3Index closest = queue.begin()->second;
     queue.erase(queue.begin());
     queue_positions.erase(closest);
@@ -1047,7 +1049,8 @@ void Isochrone_generator::write_isochrones_for_starting_points(std::string &isoc
     if (hex.second.stop_name.empty()) continue;
     std::cout << "Computing and writing isochrone for " << hex.second.stop_name << "..." << std::endl;
     clock_t start_time = clock();
-    auto time_and_previous = compute_routes_from_hex(hex.first);
+    double max_isochrone_time = *std::max_element(isochrone_times.begin(), isochrone_times.end());
+    auto time_and_previous = compute_routes_from_hex(hex.first, max_isochrone_time);
     
     nlohmann::json geojson = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
     geojson["properties"]["id"] = std::to_string(hex.first);
