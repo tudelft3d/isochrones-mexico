@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <chrono>
 
 void Isochrone_generator::print_timer(clock_t start_time) {
   clock_t stop_time = clock();
@@ -104,7 +108,7 @@ std::pair<std::unordered_map<H3Index, double>, std::unordered_map<H3Index, Conne
     H3Index closest = queue.begin()->second;
     queue.erase(queue.begin());
     queue_positions.erase(closest);
-    for (auto const &connection: hexes[closest].connections) {
+    for (auto const &connection: hexes.at(closest).connections) {
       double alternative = time[closest] + connection.travel_time;
       double wait_time = 0.0;
       if (previous[closest].how != connection.how) wait_time += connection.wait_time;
@@ -754,26 +758,50 @@ void Isochrone_generator::add_transit_connections() {
 }
 
 void Isochrone_generator::write_isochrones_for_starting_points(std::string &isochrones_folder, std::vector<double> &isochrone_times) {
-  std::ofstream output_stream;
+  std::vector<H3Index> starting_points;
+  starting_points.reserve(hexes.size());
   for (auto const &hex: hexes) {
     if (hex.second.stop_name.empty()) continue;
-    std::cout << "Computing and writing isochrone for " << hex.second.stop_name << "..." << std::endl;
-    clock_t start_time = clock();
-    double max_isochrone_time = *std::max_element(isochrone_times.begin(), isochrone_times.end());
-    auto time_and_previous = compute_routes_from_hex(hex.first, max_isochrone_time);
-    
-    nlohmann::json geojson = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
-    geojson["properties"]["id"] = std::to_string(hex.first);
-    geojson["properties"]["system"] = hex.second.transport_type;
-    geojson["properties"]["name"] = hex.second.stop_name;
-    output_stream.open(isochrones_folder + "/" + std::to_string(hex.first) + ".geojson");
-    output_stream << geojson.dump() << std::endl;
-    output_stream.close();
-    
-    std::cout << "\tdone in ";
-    print_timer(start_time);
-    std::cout << std::endl;
+    starting_points.push_back(hex.first);
   }
+  
+  unsigned int thread_count = std::thread::hardware_concurrency();
+  if (thread_count == 0) thread_count = 1;
+  if (thread_count > starting_points.size()) thread_count = starting_points.size();
+  
+  std::atomic<std::size_t> next_point(0);
+  std::mutex output_mutex;
+  double max_isochrone_time = *std::max_element(isochrone_times.begin(), isochrone_times.end());
+  
+  auto process_point = [&]() {
+    std::ofstream output_stream;
+    while (true) {
+      std::size_t index = next_point.fetch_add(1);
+      if (index >= starting_points.size()) break;
+      H3Index hex = starting_points[index];
+      const Hex &hex_data = hexes.at(hex);
+      
+      auto start_time = std::chrono::steady_clock::now();
+      auto time_and_previous = compute_routes_from_hex(hex, max_isochrone_time);
+      
+      nlohmann::json geojson = create_isochrones_from_routes(time_and_previous.first, isochrone_times);
+      geojson["properties"]["id"] = std::to_string(hex);
+      geojson["properties"]["system"] = hex_data.transport_type;
+      geojson["properties"]["name"] = hex_data.stop_name;
+      output_stream.open(isochrones_folder + "/" + std::to_string(hex) + ".geojson");
+      output_stream << geojson.dump() << std::endl;
+      output_stream.close();
+      
+      double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+      std::lock_guard<std::mutex> guard(output_mutex);
+      std::cout << "\tdone " << hex_data.stop_name << " in " << seconds << " seconds" << std::endl;
+    }
+  };
+  
+  std::vector<std::thread> threads;
+  threads.reserve(thread_count);
+  for (unsigned int i = 0; i < thread_count; ++i) threads.emplace_back(process_point);
+  for (auto &thread: threads) thread.join();
 }
 
 int Isochrone_generator::write_hexes_gpkg(std::string &hexes_file) {
