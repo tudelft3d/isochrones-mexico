@@ -846,6 +846,27 @@ void Isochrone_generator::create_mexico_city_starting_points() {
         hexes[hex].stop_name = stops[stop.second.stop].name;
       }
     }
+  } for (auto const &trip: trips) {
+    if (routes[trip.second.route].agency != "INTERURBANO") continue;
+    for (auto const &stop: trip.second.stops) {
+      LatLng ll;
+      H3Index hex;
+      ll.lat = degsToRads(stops[stop.second.stop].lat);
+      ll.lng = degsToRads(stops[stop.second.stop].lon);
+      latLngToCell(&ll, h3_resolution, &hex);
+      int64_t max_hexes;
+      maxGridDiskSize(same_station_search_size, &max_hexes);
+      H3Index *hexes_within_distance = new H3Index[max_hexes];
+      gridDisk(hex, same_station_search_size, hexes_within_distance);
+      bool match_found = false;
+      for (int i = 0; i < max_hexes; ++i) {
+        if (hexes[hexes_within_distance[i]].stop_name == stops[stop.second.stop].name) match_found = true;
+      } delete []hexes_within_distance;
+      if (!match_found && hexes[hex].stop_name.empty()) {
+        hexes[hex].transport_type = "Interurbano";
+        hexes[hex].stop_name = stops[stop.second.stop].name;
+      }
+    }
   }
   
   for (auto &hex: hexes) {
